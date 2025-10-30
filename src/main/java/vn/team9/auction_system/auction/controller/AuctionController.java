@@ -10,6 +10,7 @@ import vn.team9.auction_system.common.dto.auction.AuctionResponse;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/auctions")
 @RequiredArgsConstructor
 public class AuctionController {

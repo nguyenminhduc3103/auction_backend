@@ -8,8 +8,12 @@ import vn.team9.auction_system.auction.repository.AuctionRepository;
 import vn.team9.auction_system.common.dto.auction.AuctionRequest;
 import vn.team9.auction_system.common.dto.auction.AuctionResponse;
 import vn.team9.auction_system.common.service.IAuctionService;
+import vn.team9.auction_system.product.model.Image;
+import vn.team9.auction_system.auction.model.Bid;
 import vn.team9.auction_system.product.model.Product;
 import vn.team9.auction_system.product.repository.ProductRepository;
+import vn.team9.auction_system.transaction.model.TransactionAfterAuction;
+import vn.team9.auction_system.transaction.repository.TransactionAfterAuctionRepository;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
 
@@ -26,6 +30,8 @@ public class AuctionServiceImpl implements IAuctionService {
     private final AuctionRepository auctionRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final TransactionAfterAuctionRepository transactionAfterAuctionRepository;
+
 
     //Tạo phiên đấu giá mới
     @Override
@@ -111,12 +117,30 @@ public class AuctionServiceImpl implements IAuctionService {
         auction.setStatus("CLOSED");
         auction.setEndTime(LocalDateTime.now());
 
-        // Gán người thắng nếu có
         if (!auction.getBids().isEmpty()) {
-            auction.getBids().stream()
-                    .filter(b -> b.getIsHighest() != null && b.getIsHighest())
+            Bid highestBid = auction.getBids().stream()
+                    .filter(b -> Boolean.TRUE.equals(b.getIsHighest()))
                     .findFirst()
-                    .ifPresent(bid -> auction.setWinner(bid.getBidder()));
+                    .orElse(null);
+
+            if (highestBid != null) {
+                User winner = highestBid.getBidder();
+                auction.setWinner(winner);
+
+                // Tạo TransactionAfterAuction
+                TransactionAfterAuction txn = new TransactionAfterAuction();
+                txn.setAuction(auction);
+                txn.setSeller(auction.getProduct().getSeller());
+                txn.setBuyer(winner);
+                txn.setAmount(highestBid.getBidAmount());
+                txn.setStatus("PENDING"); // hoặc SUCCESS nếu thanh toán luôn
+                transactionAfterAuctionRepository.save(txn);
+
+                // Option: cập nhật balance
+                User seller = auction.getProduct().getSeller();
+                seller.setBalance(seller.getBalance().add(highestBid.getBidAmount()));
+                userRepository.save(seller);
+            }
         }
 
         auctionRepository.save(auction);
@@ -136,6 +160,24 @@ public class AuctionServiceImpl implements IAuctionService {
         AuctionResponse res = new AuctionResponse();
         res.setAuctionId(auction.getAuctionId());
         res.setProductId(auction.getProduct().getProductId());
+
+        // Map ảnh sản phẩm
+        if (auction.getProduct().getImages() != null && !auction.getProduct().getImages().isEmpty()) {
+            List<String> urls = auction.getProduct().getImages().stream()
+                    .map(img -> img.getUrl())   // lấy tất cả url
+                    .collect(Collectors.toList());
+            res.setProductImageUrls(urls);
+
+            // Lấy ảnh thumbnail nếu có, nếu không có thì lấy ảnh đầu tiên
+            res.setProductImageUrl(
+                    auction.getProduct().getImages().stream()
+                            .filter(img -> Boolean.TRUE.equals(img.getIsThumbnail()))
+                            .findFirst()
+                            .orElse(auction.getProduct().getImages().get(0))
+                            .getUrl()
+            );
+        }
+
         res.setStartTime(auction.getStartTime());
         res.setEndTime(auction.getEndTime());
         res.setHighestBid(auction.getHighestCurrentPrice());

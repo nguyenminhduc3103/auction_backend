@@ -4,6 +4,7 @@ import vn.team9.auction_system.common.base.BaseResponse;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class AuctionResponse extends BaseResponse {
@@ -13,4 +14,9 @@ public class AuctionResponse extends BaseResponse {
     private LocalDateTime endTime;
     private BigDecimal highestBid;
     private String status;
+
+    // Thêm thông tin product
+    private String productName;
+    private String productImageUrl;           // thumbnail hoặc ảnh đầu tiên
+    private List<String> productImageUrls;    // nếu muốn trả tất cả ảnh
 }
