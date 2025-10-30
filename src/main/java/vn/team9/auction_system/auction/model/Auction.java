@@ -4,11 +4,15 @@ import jakarta.persistence.*;
 import vn.team9.auction_system.product.model.Product;
 import vn.team9.auction_system.user.model.User;
 
+import lombok.Getter;
+import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "\"Auction\"")
 public class Auction {
