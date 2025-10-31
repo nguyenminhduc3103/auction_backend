@@ -10,5 +10,4 @@ public interface IBidService {
     BidResponse getHighestBid(Long auctionId);
 
     List<BidResponse> getBidsByUser(Long userId);           // Lấy tất cả bid của user
-    BidResponse placeAutoBid(BidRequest request);
 }
