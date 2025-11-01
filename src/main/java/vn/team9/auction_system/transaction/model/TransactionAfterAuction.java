@@ -10,12 +10,12 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "transactions_after_auction")
+@Table(name = "transactionafterauction")
 public class TransactionAfterAuction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "transaction_id")
+    @Column(name = "txn_id")
     private Long transactionId;
 
     @ManyToOne
@@ -36,6 +36,6 @@ public class TransactionAfterAuction {
     @Column(length = 20)
     private String status; // PENDING, PAID, SHIPPED, DONE, CANCELLED
 
-    @Column(name = "created_at")
+    @Column(name = "updated_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 }

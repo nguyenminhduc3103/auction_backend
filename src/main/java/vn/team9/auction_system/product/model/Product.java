@@ -23,11 +23,11 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "starting_price", precision = 15, scale = 2)
-    private BigDecimal startingPrice;
+    @Column(name = "start_price", precision = 18, scale = 2)
+    private BigDecimal startPrice;
 
-    @Column(name = "current_price", precision = 15, scale = 2)
-    private BigDecimal currentPrice;
+    @Column(name = "estimate_price", length = 100)
+    private String estimatePrice;
 
     @ManyToOne
     @JoinColumn(name = "category_id")

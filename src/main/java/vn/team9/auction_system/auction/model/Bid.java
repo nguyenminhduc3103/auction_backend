@@ -1,11 +1,14 @@
 package vn.team9.auction_system.auction.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import vn.team9.auction_system.user.model.User;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "\"Bid\"")
 public class Bid {
@@ -33,7 +36,7 @@ public class Bid {
     private BigDecimal maxAutobidAmount;
 
     @Column(name = "step_autobid_amount")
-    private BigDecimal stepAutobidAmount;
+    private BigDecimal stepAutoBidAmount;
 
     @Column(name = "is_auto")
     private Boolean isAuto = false;

@@ -9,12 +9,12 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "account_transactions")
+@Table(name = "accounttransaction")
 public class AccountTransaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "transaction_id")
+    @Column(name = "trans_id")
     private Long transactionId;
 
     @ManyToOne
@@ -26,9 +26,6 @@ public class AccountTransaction {
 
     @Column(nullable = false, length = 50)
     private String type; // DEPOSIT, WITHDRAW, TRANSFER, REFUND,...
-
-    @Column(length = 50)
-    private String reference; // Mã tham chiếu, liên kết đến transaction_after_auction nếu có
 
     @Column(length = 20)
     private String status; // SUCCESS, FAILED, PENDING

@@ -101,6 +101,10 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>0.12.5</version> <!-- Use the latest stable version -->
             <scope>runtime</scope>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
     </dependencies>
 

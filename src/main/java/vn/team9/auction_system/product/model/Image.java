@@ -7,6 +7,7 @@ import lombok.Data;
 @Entity
 @Table(name = "\"Image\"")
 public class Image {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "image_id")
@@ -16,6 +17,10 @@ public class Image {
     @JoinColumn(name = "product_id")
     private Product product;
 
-    @Column(nullable = false)
+    @Column(name = "image_url", nullable = false)
     private String url;
+
+    @Column(name = "is_thumbnail", nullable = false)
+    private Boolean isThumbnail = false;
 }
+

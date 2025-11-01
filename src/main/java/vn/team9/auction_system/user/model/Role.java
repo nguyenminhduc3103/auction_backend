@@ -6,7 +6,7 @@ import java.util.List;
 
 @Data
 @Entity
-@Table(name = "roles")
+@Table(name = "role")
 public class Role {
 
     @Id
