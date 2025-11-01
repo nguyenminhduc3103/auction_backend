@@ -40,9 +40,10 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
             throw new RuntimeException("Auction is not open for bidding");
         }
 
+        BigDecimal startPrice = auction.getProduct().getStartPrice(); // lấy từ Product
         BigDecimal currentHighest = auction.getHighestCurrentPrice() != null
                 ? auction.getHighestCurrentPrice()
-                : BigDecimal.ZERO;
+                : startPrice;
 
         if (request.getBidAmount().compareTo(currentHighest) <= 0) {
             throw new RuntimeException("Bid amount must be higher than current highest bid");
@@ -63,11 +64,6 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
 
         auction.setHighestCurrentPrice(request.getBidAmount());
         auctionRepository.save(auction);
-
-        System.out.println("🚀 Manual bid placed: " + request.getBidAmount() +
-                " by user: " + request.getBidderId() +
-                " for auction: " + request.getAuctionId());
-
 
         // QUAN TRỌNG: Kích hoạt auto-bid competition sau khi đặt bid thủ công
         try {

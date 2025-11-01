@@ -45,9 +45,10 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
             throw new RuntimeException("Auction is not open for bidding");
         }
 
+        BigDecimal startPrice = auction.getProduct().getStartPrice();
         BigDecimal currentHighest = auction.getHighestCurrentPrice() != null
                 ? auction.getHighestCurrentPrice()
-                : BigDecimal.ZERO;
+                : startPrice;
 
         // Kiểm tra hợp lệ
         if (request.getMaxAutoBidAmount().compareTo(currentHighest) <= 0) {
@@ -69,8 +70,8 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
     }
 
     @Override
-    public void handleManualBid(Long auctionId) { // SỬA: đổi từ String sang Long
-        Auction auction = findAuction(auctionId); // SỬA: gọi đúng method với Long
+    public void handleManualBid(Long auctionId) {
+        Auction auction = findAuction(auctionId);
         triggerAutoBidCompetition(auction);
     }
 

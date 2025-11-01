@@ -8,8 +8,8 @@ import vn.team9.auction_system.auction.repository.AuctionRepository;
 import vn.team9.auction_system.common.dto.auction.AuctionRequest;
 import vn.team9.auction_system.common.dto.auction.AuctionResponse;
 import vn.team9.auction_system.common.service.IAuctionService;
-import vn.team9.auction_system.product.model.Image;
 import vn.team9.auction_system.auction.model.Bid;
+import vn.team9.auction_system.product.model.Image;
 import vn.team9.auction_system.product.model.Product;
 import vn.team9.auction_system.product.repository.ProductRepository;
 import vn.team9.auction_system.transaction.model.TransactionAfterAuction;
@@ -164,7 +164,7 @@ public class AuctionServiceImpl implements IAuctionService {
         // Map ảnh sản phẩm
         if (auction.getProduct().getImages() != null && !auction.getProduct().getImages().isEmpty()) {
             List<String> urls = auction.getProduct().getImages().stream()
-                    .map(img -> img.getUrl())   // lấy tất cả url
+                    .map(Image::getUrl)   // lấy tất cả url
                     .collect(Collectors.toList());
             res.setProductImageUrls(urls);
 
@@ -173,11 +173,12 @@ public class AuctionServiceImpl implements IAuctionService {
                     auction.getProduct().getImages().stream()
                             .filter(img -> Boolean.TRUE.equals(img.getIsThumbnail()))
                             .findFirst()
-                            .orElse(auction.getProduct().getImages().get(0))
+                            .orElse(auction.getProduct().getImages().getFirst())
                             .getUrl()
             );
         }
-
+        res.setStartPrice(auction.getProduct().getStartPrice());
+        res.setEstimatePrice(auction.getProduct().getEstimatePrice());
         res.setStartTime(auction.getStartTime());
         res.setEndTime(auction.getEndTime());
         res.setHighestBid(auction.getHighestCurrentPrice());

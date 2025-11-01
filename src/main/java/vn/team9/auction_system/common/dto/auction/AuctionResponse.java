@@ -19,4 +19,7 @@ public class AuctionResponse extends BaseResponse {
     private String productName;
     private String productImageUrl;           // thumbnail hoặc ảnh đầu tiên
     private List<String> productImageUrls;    // nếu muốn trả tất cả ảnh
+
+    private BigDecimal startPrice;            // giá khởi điểm
+    private String estimatePrice;             // giá ước tính
 }
