@@ -2,7 +2,6 @@ package vn.team9.auction_system.user.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -15,6 +14,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long userId;
+
+    @Column(name = "full_name", length = 100)
+    private String fullName;
 
     @Column(nullable = false, unique = true, length = 50)
     private String username;
@@ -32,7 +34,7 @@ public class User {
     private BigDecimal balance = BigDecimal.ZERO;
 
     @Column(length = 20)
-    private String status; // ACTIVE, BANNED, etc.
+    private String status; // "PENDING", "ACTIVE", "BANNED"
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -40,4 +42,11 @@ public class User {
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;
+
+    // ✅ Thêm hai trường mới
+    @Column(name = "verification_token", length = 255)
+    private String verificationToken;
+
+    @Column(name = "verified_at")
+    private LocalDateTime verifiedAt;
 }
