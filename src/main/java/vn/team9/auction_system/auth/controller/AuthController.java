@@ -54,7 +54,7 @@ public class AuthController {
               <body style="font-family: Arial, sans-serif; background-color: #f4f7fa; text-align:center; padding:50px;">
                 <div style="max-width:600px; margin:auto; background:white; border-radius:12px;
                             box-shadow:0 4px 10px rgba(0,0,0,0.05); padding:40px;">
-                  <img src="https://i.ibb.co/VwZfvLn/1xbid-logo-white.png" style="height:60px; background-color:#0b2b4c; padding:8px; border-radius:8px;">
+                  <img src="https://github.com/TumRoyall/IT4409-BidSphere/blob/main/03_Development/auction-system-frontend/src/assets/logo.png?raw=true" style="height:60px; background-color:#0b2b4c; padding:8px; border-radius:8px;">
                   <h2 style="color:red; margin-top:24px;">❌ Liên kết xác thực không hợp lệ hoặc đã hết hạn</h2>
                   <p>Vui lòng đăng ký lại hoặc yêu cầu gửi lại email xác thực.</p>
                   <a href="#" 
@@ -70,5 +70,16 @@ public class AuthController {
             return ResponseEntity.badRequest().header("Content-Type", "text/html ; charset=UTF-8").body(html);
         }
     }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<String> resendVerification(@RequestParam String email) {
+        try {
+            authService.resendVerification(email);
+            return ResponseEntity.ok("✅ Email xác thực mới đã được gửi!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 
 }

@@ -30,6 +30,10 @@ public class User {
     @Column(length = 20)
     private String phone;
 
+    @Column(name = "gender")
+    private String gender;
+
+
     @Column(precision = 18, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
 
@@ -51,4 +55,11 @@ public class User {
 
     @Column(name = "verification_token_expiry")
     private LocalDateTime verificationTokenExpiry;
+
+    @Column(name = "banned_until")
+    private LocalDateTime bannedUntil;
+
+    @Column(name = "ban_reason")
+    private String banReason;
+
 }

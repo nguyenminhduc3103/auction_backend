@@ -43,9 +43,11 @@ public class UserAuthService {
                 System.out.println("📨 Đã gửi lại email xác thực cho " + existingUser.getEmail());
 
                 return AuthResponse.builder()
+                        .gender(existingUser.getGender())
                         .email(existingUser.getEmail())
                         .fullName(existingUser.getFullName())
                         .username(existingUser.getUsername())
+                        .status(existingUser.getStatus())
                         .tokenType("Bearer")
                         .accessToken(null)
                         .build();
@@ -59,6 +61,7 @@ public class UserAuthService {
 
         // Nếu email chưa tồn tại → tạo user mới
         User user = new User();
+        user.setGender(request.getGender());
         user.setUsername(request.getUsername());
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
@@ -79,6 +82,8 @@ public class UserAuthService {
                 .tokenType("Bearer")
                 .username(user.getUsername())
                 .fullName(user.getFullName())
+                .gender(user.getGender())
+                .status(user.getStatus())
                 .email(user.getEmail())
                 .build();
     }
@@ -109,24 +114,51 @@ public class UserAuthService {
     // ==========================
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại."));
+                .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
+
+        // Kiểm tra ban tạm thời
+        if ("BANNED".equalsIgnoreCase(user.getStatus())) {
+            if (user.getBannedUntil() != null) {
+                LocalDateTime now = LocalDateTime.now();
+                if (user.getBannedUntil().isAfter(now)) {
+                    throw new RuntimeException(
+                            "Tài khoản bị khóa đến " + user.getBannedUntil() +
+                                    (user.getBanReason() != null ? " | Lý do: " + user.getBanReason() : "")
+                    );
+                } else {
+                    // Hết hạn ban → mở lại
+                    user.setStatus("ACTIVE");
+                    user.setBannedUntil(null);
+                    user.setBanReason(null);
+                    userRepository.save(user);
+                }
+            } else {
+                // Ban vĩnh viễn (không có bannedUntil)
+                throw new RuntimeException(
+                        "Tài khoản của bạn đã bị khóa vĩnh viễn" +
+                                (user.getBanReason() != null ? " | Lý do: " + user.getBanReason() : "")
+                );
+            }
+        }
+        System.out.println("🟢 Login request: email=" + request.getEmail() + ", pass=" + request.getPassword());
+        if ("PENDING".equalsIgnoreCase(user.getStatus())) {
+            throw new RuntimeException("Vui lòng xác thực email trước khi đăng nhập.");
+        }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Sai mật khẩu.");
+            throw new RuntimeException("Mật khẩu không chính xác!");
         }
 
-        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
-            throw new RuntimeException("Tài khoản chưa được xác thực hoặc đã bị khoá.");
-        }
-
+        // ACTIVE -> login bình thường
         String token = jwtService.generateToken(user.getEmail());
-
         return AuthResponse.builder()
                 .accessToken(token)
                 .tokenType("Bearer")
                 .username(user.getUsername())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
+                .status(user.getStatus())
+                .gender(user.getGender())
                 .build();
     }
 
@@ -138,4 +170,26 @@ public class UserAuthService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
     }
+
+
+    // ==========================
+    // RESEND EMAIL FOR PENDING ACCOUNT
+    // ==========================
+    @Transactional
+    public void resendVerification(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với email: " + email));
+
+        if (!"PENDING".equalsIgnoreCase(user.getStatus())) {
+            throw new RuntimeException("Tài khoản này đã được xác thực hoặc không hợp lệ.");
+        }
+
+        user.setVerificationToken(UUID.randomUUID().toString());
+        user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        emailService.sendVerificationEmail(user.getEmail(), user.getVerificationToken());
+        System.out.println("📨 Đã gửi lại email xác thực cho " + user.getEmail());
+    }
+
 }
