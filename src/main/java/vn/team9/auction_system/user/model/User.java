@@ -43,10 +43,12 @@ public class User {
     @JoinColumn(name = "role_id")
     private Role role;
 
-    // ✅ Thêm hai trường mới
     @Column(name = "verification_token", length = 255)
     private String verificationToken;
 
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
+
+    @Column(name = "verification_token_expiry")
+    private LocalDateTime verificationTokenExpiry;
 }

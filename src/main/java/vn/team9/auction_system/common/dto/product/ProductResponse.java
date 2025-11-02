@@ -15,5 +15,4 @@ public class ProductResponse extends BaseResponse {
     private BigDecimal currentPrice;
     private String status;
     private LocalDateTime createdAt;
-    private Long sellerId;
 }

@@ -27,6 +27,48 @@ public class AuthController {
 
     @GetMapping("/verify")
     public ResponseEntity<String> verifyEmail(@RequestParam String token) {
-        return ResponseEntity.ok(authService.verifyEmail(token));
+        try {
+            authService.verifyEmail(token);
+            String html = """
+            <html>
+              <body style="font-family: Arial, sans-serif; background-color: #f4f7fa; text-align:center; padding:50px;">
+                <div style="max-width:600px; margin:auto; background:white; border-radius:12px;
+                            box-shadow:0 4px 10px rgba(0,0,0,0.05); padding:40px;">
+                  <img src="https://github.com/TumRoyall/IT4409-BidSphere/blob/main/03_Development/auction-system-frontend/src/assets/logo.png?raw=true" style="height:60px; background-color:#0b2b4c; padding:8px; border-radius:8px;">
+                  <h2 style="color:#0b2b4c; margin-top:24px;">🎉 Xác thực tài khoản thành công!</h2>
+                  <p>Cảm ơn bạn đã xác thực email. Tài khoản của bạn đã được kích hoạt.</p>
+                  <a href="https://1xbid.com/login" 
+                     style="display:inline-block;margin-top:20px;padding:12px 24px;background-color:#0b2b4c;
+                            color:white;border-radius:8px;text-decoration:none;font-weight:bold;">
+                     Đăng nhập ngay
+                  </a>
+                  <p style="color:gray; font-size:13px; margin-top:30px;">© 2025 1xBid Team</p>
+                </div>
+              </body>
+            </html>
+        """;
+            return ResponseEntity.ok().header("Content-Type", "text/html; charset=UTF-8").body(html);
+        } catch (RuntimeException e) {
+            String html = """
+            <html>
+              <body style="font-family: Arial, sans-serif; background-color: #f4f7fa; text-align:center; padding:50px;">
+                <div style="max-width:600px; margin:auto; background:white; border-radius:12px;
+                            box-shadow:0 4px 10px rgba(0,0,0,0.05); padding:40px;">
+                  <img src="https://i.ibb.co/VwZfvLn/1xbid-logo-white.png" style="height:60px; background-color:#0b2b4c; padding:8px; border-radius:8px;">
+                  <h2 style="color:red; margin-top:24px;">❌ Liên kết xác thực không hợp lệ hoặc đã hết hạn</h2>
+                  <p>Vui lòng đăng ký lại hoặc yêu cầu gửi lại email xác thực.</p>
+                  <a href="#" 
+                     style="display:inline-block;margin-top:20px;padding:12px 24px;background-color:#0b2b4c;
+                            color:white;border-radius:8px;text-decoration:none;font-weight:bold;">
+                     Đăng ký lại
+                  </a>
+                  <p style="color:gray; font-size:13px; margin-top:30px;">© 2025 1xBid Team</p>
+                </div>
+              </body>
+            </html>
+        """;
+            return ResponseEntity.badRequest().header("Content-Type", "text/html ; charset=UTF-8").body(html);
+        }
     }
+
 }
