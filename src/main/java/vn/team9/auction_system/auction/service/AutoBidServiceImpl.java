@@ -45,10 +45,10 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
             throw new RuntimeException("Auction is not open for bidding");
         }
 
-        BigDecimal startPrice = auction.getProduct().getStartPrice();
-        BigDecimal currentHighest = auction.getHighestCurrentPrice() != null
-                ? auction.getHighestCurrentPrice()
-                : startPrice;
+        BigDecimal currentHighest = auction.getHighestCurrentPrice();
+        if (currentHighest == null || currentHighest.compareTo(BigDecimal.ZERO) <= 0) {
+            currentHighest = auction.getProduct().getStartPrice();
+        }
 
         // Kiểm tra hợp lệ
         if (request.getMaxAutoBidAmount().compareTo(currentHighest) <= 0) {
