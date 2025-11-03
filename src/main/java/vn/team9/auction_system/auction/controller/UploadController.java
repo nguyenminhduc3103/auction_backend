@@ -7,8 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/upload")
@@ -18,15 +17,25 @@ public class UploadController {
 
     private final Cloudinary cloudinary;
 
-    @PostMapping
-    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
+    @PostMapping("/multiple")
+    public ResponseEntity<?> uploadMultipleImages(@RequestParam("files") MultipartFile[] files) {
         try {
-            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
-                    ObjectUtils.asMap("folder", "auction_images"));
-            return ResponseEntity.ok(uploadResult);
-        } catch (Exception e) {
-            e.printStackTrace(); // In lỗi chi tiết ra console
-            return ResponseEntity.internalServerError().body("Upload thất bại: " + e.getMessage());
+            List<Map<String, Object>> uploadedImages = new ArrayList<>();
+
+            for (MultipartFile file : files) {
+                Map<String, Object> uploadResult = cloudinary.uploader().upload(
+                        file.getBytes(),
+                        ObjectUtils.asMap("folder", "auction_images")
+                );
+                uploadedImages.add(uploadResult);
+            }
+
+            return ResponseEntity.ok(uploadedImages);
+
+        } catch (Exception e) {  // Bắt tất cả các loại lỗi
+            e.printStackTrace(); // In đầy đủ stack trace ra console
+            return ResponseEntity.internalServerError()
+                    .body("Upload thất bại: " + e.getMessage());
         }
     }
 }
