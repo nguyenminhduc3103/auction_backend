@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class ProductResponse extends BaseResponse {
+    private Long sellerId;
     private Long productId;
     private String name;
     private String description;
@@ -14,5 +15,4 @@ public class ProductResponse extends BaseResponse {
     private BigDecimal currentPrice;
     private String status;
     private LocalDateTime createdAt;
-    private Long sellerId;
 }
