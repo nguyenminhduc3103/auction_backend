@@ -40,10 +40,10 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
             throw new RuntimeException("Auction is not open for bidding");
         }
 
-        BigDecimal startPrice = auction.getProduct().getStartPrice(); // lấy từ Product
-        BigDecimal currentHighest = auction.getHighestCurrentPrice() != null
-                ? auction.getHighestCurrentPrice()
-                : startPrice;
+        BigDecimal currentHighest = auction.getHighestCurrentPrice();
+        if (currentHighest == null || currentHighest.compareTo(BigDecimal.ZERO) <= 0) {
+            currentHighest = auction.getProduct().getStartPrice();
+        }
 
         if (request.getBidAmount().compareTo(currentHighest) <= 0) {
             throw new RuntimeException("Bid amount must be higher than current highest bid");
