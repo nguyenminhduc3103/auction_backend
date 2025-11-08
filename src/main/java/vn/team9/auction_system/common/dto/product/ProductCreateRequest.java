@@ -2,17 +2,15 @@ package vn.team9.auction_system.common.dto.product;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import vn.team9.auction_system.common.base.BaseResponse;
-import vn.team9.auction_system.common.dto.image.ImageResponse;
+import vn.team9.auction_system.common.base.BaseRequest;
+import vn.team9.auction_system.common.dto.image.ImageRequest;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProductResponse extends BaseResponse {
-    private Long productId;
+public class ProductCreateRequest extends BaseRequest {
     private Long sellerId;
     private String name;
     private String categories;
@@ -22,6 +20,5 @@ public class ProductResponse extends BaseResponse {
     private BigDecimal deposit;
     private String imageUrl;
     private String status;
-    private LocalDateTime createdAt;
-    private List<ImageResponse> images;
+    private List<ImageRequest> images;
 }
