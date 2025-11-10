@@ -36,7 +36,19 @@ public class AuctionServiceImpl implements IAuctionService {
     //Tạo phiên đấu giá mới
     @Override
     public AuctionResponse createAuction(AuctionRequest request) {
-        Product product = productRepository.findById(request.getProductId())
+        if (request.getProductId() == null) {
+            throw new RuntimeException("Product ID is required");
+        }
+        
+        if (request.getStartTime() == null) {
+            throw new RuntimeException("Start time is required");
+        }
+        
+        if (request.getEndTime() == null) {
+            throw new RuntimeException("End time is required");
+        }
+        
+        Product product = productRepository.findByProductIdAndIsDeletedFalse(request.getProductId())
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + request.getProductId()));
 
         Auction auction = new Auction();
