@@ -1,8 +1,6 @@
-package vn.team9.auction_system.auth.dto;
+package vn.team9.auction_system.common.dto.auth;
 
 import lombok.*;
-
-import java.time.LocalDateTime;
 
 @Data
 @Builder

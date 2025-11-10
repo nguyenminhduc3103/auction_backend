@@ -1,12 +1,11 @@
 package vn.team9.auction_system.common.dto.user;
 
 import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-public class UserResponse {
+public class UserDTO {
     private Long userId;
     private String fullName;
     private String username;
@@ -16,8 +15,8 @@ public class UserResponse {
     private BigDecimal balance;
     private String status;
     private LocalDateTime createdAt;
-    private LocalDateTime verifiedAt;
-    private String avatarUrl;
     private Long roleId;
     private String roleName;
+    private LocalDateTime verifiedAt;
+    private String avatarUrl;
 }
