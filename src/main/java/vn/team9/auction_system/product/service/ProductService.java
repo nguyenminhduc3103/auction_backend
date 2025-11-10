@@ -132,6 +132,16 @@ public class ProductService implements IProductService {
 
 	// Hook để tích hợp upload ảnh lên cloud hoặc xử lý metadata trước khi lưu
 	private List<ImageRequest> handleImageUploads(List<ImageRequest> imageRequests) {
+		if (imageRequests == null) {
+			return null;
+		}
+
+		imageRequests.forEach(imageRequest -> {
+			if (imageRequest.getSecureUrl() != null && !imageRequest.getSecureUrl().isBlank()) {
+				imageRequest.setImageUrl(imageRequest.getSecureUrl());
+			}
+		});
+
 		return imageRequests;
 	}
 
