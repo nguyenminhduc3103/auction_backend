@@ -1,5 +1,6 @@
 package vn.team9.auction_system.common.service;
 
+import org.springframework.data.domain.Page;
 import org.springframework.lang.NonNull;
 import vn.team9.auction_system.common.dto.product.ProductCreateRequest;
 import vn.team9.auction_system.common.dto.product.ProductResponse;
@@ -12,7 +13,8 @@ public interface IProductService {
     ProductResponse updateProduct(@NonNull Long id, ProductUpdateRequest request);
     ProductResponse getProductById(@NonNull Long id);
     List<ProductResponse> getAllProducts();
-    void deleteProduct(@NonNull Long id);
+    Page<ProductResponse> getProductsPage(int page, int size);
+    ProductResponse deleteProduct(@NonNull Long id);
 
     List<ProductResponse> getProductsBySeller(@NonNull Long sellerId);
 }

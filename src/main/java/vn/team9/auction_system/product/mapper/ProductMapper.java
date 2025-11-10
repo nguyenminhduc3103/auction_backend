@@ -22,6 +22,8 @@ public interface ProductMapper {
     @Mapping(target = "seller", ignore = true)
     @Mapping(target = "images", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "isDeleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     Product toEntity(ProductCreateRequest request);
 
     // ProductUpdateRequest -> Product entity (partial update)
@@ -29,6 +31,8 @@ public interface ProductMapper {
     @Mapping(target = "seller", ignore = true)
     @Mapping(target = "images", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "isDeleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     void updateEntity(@MappingTarget Product product, ProductUpdateRequest request);
 
     // Product entity -> ProductResponse

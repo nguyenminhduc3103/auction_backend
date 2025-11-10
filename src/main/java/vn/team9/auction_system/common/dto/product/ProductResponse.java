@@ -23,5 +23,7 @@ public class ProductResponse extends BaseResponse {
     private String imageUrl;
     private String status;
     private LocalDateTime createdAt;
+    private Boolean isDeleted;
+    private LocalDateTime deletedAt;
     private List<ImageResponse> images;
 }
