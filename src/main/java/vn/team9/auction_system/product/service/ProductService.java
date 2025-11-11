@@ -117,6 +117,7 @@ public class ProductService implements IProductService {
 	@Transactional(readOnly = true)
 	public List<ProductResponse> getProductsBySeller(@NonNull Long sellerId) {
 		return productRepository.findBySeller_UserIdAndIsDeletedFalse(sellerId).stream()
+				.filter(p -> "approved".equalsIgnoreCase(p.getStatus()))
 				.map(productMapper::toResponse)
 				.collect(Collectors.toList());
 	}
