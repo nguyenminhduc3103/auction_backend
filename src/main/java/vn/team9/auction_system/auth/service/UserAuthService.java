@@ -155,6 +155,7 @@ public class UserAuthService {
                 .email(user.getEmail())
                 .status(user.getStatus())
                 .gender(user.getGender())
+                .avatarUrl(user.getAvatarUrl())
                 .build();
     }
 
