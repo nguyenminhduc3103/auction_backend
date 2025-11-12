@@ -172,6 +172,7 @@ public class AuctionServiceImpl implements IAuctionService {
         AuctionResponse res = new AuctionResponse();
         res.setAuctionId(auction.getAuctionId());
         res.setProductId(auction.getProduct().getProductId());
+        res.setProductName(auction.getProduct().getProductName());
 
         // Map ảnh sản phẩm
         if (auction.getProduct().getImages() != null && !auction.getProduct().getImages().isEmpty()) {
