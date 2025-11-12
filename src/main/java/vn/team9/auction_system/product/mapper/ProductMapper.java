@@ -25,4 +25,5 @@ public interface ProductMapper {
     // Image entity -> ImageResponse
     @Mapping(source = "product.productId", target = "productId")
     ImageResponse toResponse(Image entity);
+
 }
