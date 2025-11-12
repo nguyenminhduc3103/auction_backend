@@ -14,7 +14,7 @@ public class AdminLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "log_id")
     private Long logId;
-
+    
     @ManyToOne
     @JoinColumn(name = "admin_id")
     private User admin;

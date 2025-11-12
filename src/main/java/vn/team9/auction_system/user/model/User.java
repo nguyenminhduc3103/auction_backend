@@ -62,4 +62,7 @@ public class User {
     @Column(name = "ban_reason")
     private String banReason;
 
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
 }

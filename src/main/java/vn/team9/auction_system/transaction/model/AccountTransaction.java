@@ -31,7 +31,7 @@ public class AccountTransaction {
     private BigDecimal amount;
 
     @Column(nullable = false, length = 50)
-    private String type;
+    private String type; // DEPOSIT, WITHDRAW
 
     @Column(length = 20)
     private String status; // SUCCESS, FAILED, PENDING

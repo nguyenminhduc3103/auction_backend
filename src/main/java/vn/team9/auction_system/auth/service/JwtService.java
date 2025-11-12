@@ -30,7 +30,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .setClaims(extraClaims)
-                .setSubject(subject)         // thường là email hoặc userId
+                .setSubject(subject)
                 .setIssuedAt(now)            // thời điểm phát hành
                 .setExpiration(expiry)       // thời điểm hết hạn
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
