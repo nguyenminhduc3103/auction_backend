@@ -12,5 +12,5 @@ public class TransactionAfterAuctionResponse {
     private Long sellerId;
     private BigDecimal amount;
     private String status; // PENDING, PAID, SHIPPED, DONE, CANCELLED
-    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

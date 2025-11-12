@@ -5,7 +5,6 @@ import vn.team9.auction_system.common.dto.transaction.TransactionAfterAuctionRes
 import java.util.List;
 
 public interface ITransactionAfterAuctionService {
-    TransactionAfterAuctionResponse createTransaction(TransactionAfterAuctionRequest request);
     TransactionAfterAuctionResponse updateTransactionStatus(Long id, String status);
     List<TransactionAfterAuctionResponse> getTransactionsByUser(Long userId);
 

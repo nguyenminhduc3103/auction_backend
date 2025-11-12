@@ -1,7 +1,10 @@
 package vn.team9.auction_system.transaction.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import vn.team9.auction_system.user.model.User;
 
 import java.math.BigDecimal;
@@ -9,6 +12,9 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "accounttransaction")
 public class AccountTransaction {
 
@@ -25,11 +31,18 @@ public class AccountTransaction {
     private BigDecimal amount;
 
     @Column(nullable = false, length = 50)
-    private String type; // DEPOSIT, WITHDRAW, TRANSFER, REFUND,...
+    private String type;
 
     @Column(length = 20)
     private String status; // SUCCESS, FAILED, PENDING
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }
