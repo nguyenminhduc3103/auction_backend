@@ -8,6 +8,9 @@ import lombok.Data;
 public class ImageRequest {
     private Long productId;
     private String imageUrl;
+    
+    @JsonProperty("isThumbnail")
+    @JsonAlias({"is_thumbnail", "thumbnail"})
     private boolean isThumbnail;
 
     @JsonProperty("secure_url")
