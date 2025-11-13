@@ -3,9 +3,9 @@ package vn.team9.auction_system.auth.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import vn.team9.auction_system.auth.dto.AuthResponse;
-import vn.team9.auction_system.auth.dto.LoginRequest;
-import vn.team9.auction_system.auth.dto.RegisterRequest;
+import vn.team9.auction_system.common.dto.auth.AuthResponse;
+import vn.team9.auction_system.common.dto.auth.LoginRequest;
+import vn.team9.auction_system.common.dto.auth.RegisterRequest;
 import vn.team9.auction_system.auth.service.UserAuthService;
 
 @RestController
@@ -75,7 +75,7 @@ public class AuthController {
     public ResponseEntity<String> resendVerification(@RequestParam String email) {
         try {
             authService.resendVerification(email);
-            return ResponseEntity.ok("✅ Email xác thực mới đã được gửi!");
+            return ResponseEntity.ok("Email xác thực mới đã được gửi!");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

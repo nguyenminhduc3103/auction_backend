@@ -17,6 +17,7 @@ public interface TransactionMapper {
     // TransactionAfterAuction entity -> TransactionResponse
     @Mapping(source = "buyer.userId", target = "buyerId")
     @Mapping(source = "seller.userId", target = "sellerId")
+    @Mapping(source = "updatedAt", target = "updatedAt")
     TransactionAfterAuctionResponse toResponse(vn.team9.auction_system.transaction.model.TransactionAfterAuction entity);
 
     // AccountTransactionRequest -> AccountTransaction entity
@@ -24,5 +25,6 @@ public interface TransactionMapper {
 
     // AccountTransaction entity -> AccountTransactionResponse
     @Mapping(source = "user.userId", target = "userId")
+    @Mapping(source = "createdAt", target = "createdAt")
     AccountTransactionResponse toResponse(AccountTransaction entity);
 }
