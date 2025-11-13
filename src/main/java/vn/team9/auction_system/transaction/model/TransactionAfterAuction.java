@@ -37,5 +37,5 @@ public class TransactionAfterAuction {
     private String status; // PENDING, PAID, SHIPPED, DONE, CANCELLED
 
     @Column(name = "updated_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime updatedAt = LocalDateTime.now();
 }

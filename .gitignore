@@ -1,0 +1,7 @@
+# Ignore local Spring Boot config (contains secrets)
+src/main/resources/application.properties
+
+# Optional: common secret files
+*.env
+*.pem
+*.key

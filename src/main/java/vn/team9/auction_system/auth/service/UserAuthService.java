@@ -4,7 +4,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import vn.team9.auction_system.auth.dto.*;
+import vn.team9.auction_system.common.dto.auth.AuthResponse;
+import vn.team9.auction_system.common.dto.auth.LoginRequest;
+import vn.team9.auction_system.common.dto.auth.RegisterRequest;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
 
@@ -21,9 +23,7 @@ public class UserAuthService {
     private final JwtService jwtService;
     private final EmailService emailService;
 
-    // ==========================
-    // 🔐 REGISTER USER
-    // ==========================
+    // REGISTER USER
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         // Tìm user theo email
@@ -40,7 +40,7 @@ public class UserAuthService {
                 userRepository.save(existingUser);
 
                 emailService.sendVerificationEmail(existingUser.getEmail(), existingUser.getVerificationToken());
-                System.out.println("📨 Đã gửi lại email xác thực cho " + existingUser.getEmail());
+                System.out.println("Đã gửi lại email xác thực cho " + existingUser.getEmail());
 
                 return AuthResponse.builder()
                         .userId(existingUser.getUserId())
@@ -75,7 +75,7 @@ public class UserAuthService {
 
         userRepository.save(user);
 
-        System.out.println("📧 Sending verification email to: " + user.getEmail());
+        System.out.println("Sending verification email to: " + user.getEmail());
         emailService.sendVerificationEmail(user.getEmail(), user.getVerificationToken());
 
         return AuthResponse.builder()
@@ -91,9 +91,7 @@ public class UserAuthService {
     }
 
 
-    // ==========================
-    // 🧾 VERIFY EMAIL
-    // ==========================
+    // VERIFY EMAIL
     @Transactional
     public String verifyEmail(String token) {
         User user = userRepository.findByVerificationToken(token)
@@ -111,9 +109,7 @@ public class UserAuthService {
         return "Xác thực tài khoản thành công.";
     }
 
-    // ==========================
-    // 🔑 LOGIN USER
-    // ==========================
+    //  LOGIN USER
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
@@ -162,22 +158,11 @@ public class UserAuthService {
                 .email(user.getEmail())
                 .status(user.getStatus())
                 .gender(user.getGender())
+                .avatarUrl(user.getAvatarUrl())
                 .build();
     }
 
-    // ==========================
-    // 👤 GET CURRENT USER
-    // ==========================
-    public User getCurrentUser(String token) {
-        String email = jwtService.extractUsername(token);
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
-    }
-
-
-    // ==========================
     // RESEND EMAIL FOR PENDING ACCOUNT
-    // ==========================
     @Transactional
     public void resendVerification(String email) {
         User user = userRepository.findByEmail(email)
