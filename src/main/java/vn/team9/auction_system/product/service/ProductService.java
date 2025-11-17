@@ -5,6 +5,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.team9.auction_system.common.dto.image.ImageRequest;
@@ -23,7 +26,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+ 
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +40,7 @@ public class ProductService implements IProductService {
 	@Override
 	public ProductResponse createProduct(@NonNull ProductCreateRequest request) {
 		Product product = productMapper.toEntity(request);
-		product.setSeller(resolveSeller(request.getSellerId()));
+		product.setSeller(getCurrentUser());
 		product.setStatus(request.getStatus() != null ? request.getStatus() : "pending");
 		if (product.getCreatedAt() == null) {
 			product.setCreatedAt(LocalDateTime.now());
@@ -57,11 +60,15 @@ public class ProductService implements IProductService {
 		Product product = productRepository.findByProductIdAndIsDeletedFalse(id)
 				.orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
 
+		// Enforce ownership: only the seller (current user) can update
+		User current = getCurrentUser();
+		if (product.getSeller() == null || !product.getSeller().getUserId().equals(current.getUserId())) {
+			throw new RuntimeException("Bạn không có quyền sửa sản phẩm này");
+		}
+
 		productMapper.updateEntity(product, request);
 
-		if (request.getSellerId() != null && (product.getSeller() == null || !request.getSellerId().equals(product.getSeller().getUserId()))) {
-			product.setSeller(resolveSeller(request.getSellerId()));
-		}
+		// Ignore any attempt to change seller via request; seller is bound to token
 
 		if (request.getStatus() != null) {
 			product.setStatus(request.getStatus());
@@ -85,13 +92,7 @@ public class ProductService implements IProductService {
 		return productMapper.toResponse(product);
 	}
 
-	@Override
-	@Transactional(readOnly = true)
-	public List<ProductResponse> getAllProducts() {
-		return productRepository.findAllByIsDeletedFalse().stream()
-				.map(productMapper::toResponse)
-				.collect(Collectors.toList());
-	}
+	// Removed non-paginated getAllProducts()
 
 	@Override
 	@Transactional(readOnly = true)
@@ -113,21 +114,39 @@ public class ProductService implements IProductService {
 		return productMapper.toResponse(deleted);
 	}
 
+	// Removed non-paginated getProductsBySeller()
+
 	@Override
 	@Transactional(readOnly = true)
-	public List<ProductResponse> getProductsBySeller(@NonNull Long sellerId) {
-		return productRepository.findBySeller_UserIdAndIsDeletedFalse(sellerId).stream()
-				.map(productMapper::toResponse)
-				.collect(Collectors.toList());
+	public Page<ProductResponse> getProductsBySellerPage(@NonNull Long sellerId, int page, int size) {
+		int pageIndex = Math.max(page, 0);
+		int pageSize = size > 0 ? size : 10;
+		Pageable pageable = PageRequest.of(pageIndex, pageSize);
+		return productRepository.findBySeller_UserIdAndIsDeletedFalse(sellerId, pageable)
+				.map(productMapper::toResponse);
 	}
 
-	private User resolveSeller(Long sellerId) {
-		if (sellerId == null) {
-			throw new RuntimeException("Seller id is required");
+	// Removed resolveSeller(Long) as seller is now bound to current token
+
+	// Resolve current authenticated user from SecurityContext (email as username)
+	private User getCurrentUser() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			throw new RuntimeException("Vui lòng đăng nhập");
 		}
 
-		return userRepository.findById(sellerId)
-				.orElseThrow(() -> new RuntimeException("Seller not found with id: " + sellerId));
+		String email;
+		Object principal = authentication.getPrincipal();
+		if (principal instanceof UserDetails userDetails) {
+			email = userDetails.getUsername();
+		} else if (principal instanceof String s) {
+			email = s;
+		} else {
+			throw new RuntimeException("Không thể xác định người dùng hiện tại");
+		}
+
+		return userRepository.findByEmail(email)
+				.orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với email: " + email));
 	}
 
 	// Hook để tích hợp upload ảnh lên cloud hoặc xử lý metadata trước khi lưu

@@ -6,15 +6,13 @@ import vn.team9.auction_system.common.dto.product.ProductCreateRequest;
 import vn.team9.auction_system.common.dto.product.ProductResponse;
 import vn.team9.auction_system.common.dto.product.ProductUpdateRequest;
 
-import java.util.List;
 
 public interface IProductService {
     ProductResponse createProduct(@NonNull ProductCreateRequest request);
     ProductResponse updateProduct(@NonNull Long id, ProductUpdateRequest request);
     ProductResponse getProductById(@NonNull Long id);
-    List<ProductResponse> getAllProducts();
     Page<ProductResponse> getProductsPage(int page, int size);
     ProductResponse deleteProduct(@NonNull Long id);
 
-    List<ProductResponse> getProductsBySeller(@NonNull Long sellerId);
+    Page<ProductResponse> getProductsBySellerPage(@NonNull Long sellerId, int page, int size);
 }

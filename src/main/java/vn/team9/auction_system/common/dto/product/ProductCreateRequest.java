@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import vn.team9.auction_system.common.base.BaseRequest;
 import vn.team9.auction_system.common.dto.image.ImageRequest;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -13,7 +14,8 @@ import java.util.List;
 public class ProductCreateRequest extends BaseRequest {
     private Long sellerId;
     private String name;
-    private String categories;
+    @JsonAlias({"categories"})
+    private String category;
     private String description;
     private BigDecimal startPrice;
     private BigDecimal estimatePrice;

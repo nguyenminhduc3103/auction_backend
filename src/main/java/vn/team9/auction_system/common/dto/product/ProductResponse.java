@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import vn.team9.auction_system.common.base.BaseResponse;
 import vn.team9.auction_system.common.dto.image.ImageResponse;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,7 +16,8 @@ public class ProductResponse extends BaseResponse {
     private Long productId;
     private Long sellerId;
     private String name;
-    private String categories;
+    @JsonProperty("category")
+    private String category;
     private String description;
     private BigDecimal startPrice;
     private BigDecimal estimatePrice;

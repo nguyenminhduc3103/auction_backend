@@ -26,7 +26,7 @@ public class Product {
     private String name;
 
     @Column(name = "categories", length = 100)
-    private String categories;
+    private String category;
 
     @Column(columnDefinition = "TEXT")
     private String description;
