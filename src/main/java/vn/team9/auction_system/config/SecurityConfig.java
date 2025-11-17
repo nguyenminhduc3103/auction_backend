@@ -3,8 +3,8 @@ package vn.team9.auction_system.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -24,17 +24,18 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
+
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/auth/**").permitAll()
-                    // Public: View any user's profile
-                    .requestMatchers(HttpMethod.GET, "/api/users/{id}").permitAll()
-                    // Require auth for seller's own listing
-                    .requestMatchers(HttpMethod.GET, "/api/products/seller/me/**").authenticated()
-                    // Public browse for other product GETs
-                    .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                    .anyRequest().authenticated()
+                        .requestMatchers(PublicEndpoints.PUBLIC_API).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auctions/**").permitAll()
+                        .anyRequest().authenticated()
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
