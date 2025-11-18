@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.team9.auction_system.common.dto.image.ImageRequest;
+import vn.team9.auction_system.common.dto.product.ProductApprovalRequest;
 import vn.team9.auction_system.common.dto.product.ProductCreateRequest;
 import vn.team9.auction_system.common.dto.product.ProductResponse;
 import vn.team9.auction_system.common.dto.product.ProductUpdateRequest;
@@ -26,7 +27,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
- 
 
 @Service
 @RequiredArgsConstructor
@@ -41,15 +41,24 @@ public class ProductService implements IProductService {
 	public ProductResponse createProduct(@NonNull ProductCreateRequest request) {
 		Product product = productMapper.toEntity(request);
 		product.setSeller(getCurrentUser());
-		product.setStatus(request.getStatus() != null ? request.getStatus() : "pending");
+
+		// Status is always set to "pending" by system - seller cannot set this
+		product.setStatus("pending");
+
+		// Seller cannot set deposit and estimatePrice - these will be set by admin
+		// during approval
+		product.setDeposit(null);
+		product.setEstimatePrice(null);
+
 		if (product.getCreatedAt() == null) {
 			product.setCreatedAt(LocalDateTime.now());
 		}
 
-		// Chuẩn bị lại danh sách ảnh (vd: upload cloud, cập nhật URL) trước khi gán cho product
-			List<ImageRequest> processedImages = handleImageUploads(request.getImages());
-			replaceImages(product, processedImages);
-			syncPrimaryImage(product);
+		// Chuẩn bị lại danh sách ảnh (vd: upload cloud, cập nhật URL) trước khi gán cho
+		// product
+		List<ImageRequest> processedImages = handleImageUploads(request.getImages());
+		replaceImages(product, processedImages);
+		syncPrimaryImage(product);
 
 		Product saved = productRepository.save(Objects.requireNonNull(product));
 		return productMapper.toResponse(saved);
@@ -66,13 +75,12 @@ public class ProductService implements IProductService {
 			throw new RuntimeException("Bạn không có quyền sửa sản phẩm này");
 		}
 
+		// Update allowed fields via mapper (deposit and estimatePrice are excluded from
+		// ProductUpdateRequest)
 		productMapper.updateEntity(product, request);
 
 		// Ignore any attempt to change seller via request; seller is bound to token
-
-		if (request.getStatus() != null) {
-			product.setStatus(request.getStatus());
-		}
+		// Status cannot be changed by seller - only admin via approval endpoint
 
 		if (request.getImages() != null) {
 			List<ImageRequest> processedImages = handleImageUploads(request.getImages());
@@ -124,6 +132,31 @@ public class ProductService implements IProductService {
 		Pageable pageable = PageRequest.of(pageIndex, pageSize);
 		return productRepository.findBySeller_UserIdAndIsDeletedFalse(sellerId, pageable)
 				.map(productMapper::toResponse);
+	}
+
+	@Override
+	public ProductResponse approveProduct(@NonNull Long id, ProductApprovalRequest request) {
+		Product product = productRepository.findByProductIdAndIsDeletedFalse(id)
+				.orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+
+		// TODO: Add RBAC check here to ensure only admin can call this method
+		// For now, this method should be protected by controller-level security
+
+		// Set deposit and estimatePrice - only admin can do this
+		if (request.getDeposit() != null) {
+			product.setDeposit(request.getDeposit());
+		}
+		if (request.getEstimatePrice() != null) {
+			product.setEstimatePrice(request.getEstimatePrice());
+		}
+
+		// Update status if provided (typically "approved" or "rejected")
+		if (request.getStatus() != null) {
+			product.setStatus(request.getStatus());
+		}
+
+		Product approved = productRepository.save(Objects.requireNonNull(product));
+		return productMapper.toResponse(approved);
 	}
 
 	// Removed resolveSeller(Long) as seller is now bound to current token

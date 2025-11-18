@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.team9.auction_system.common.dto.product.ProductCreateRequest;
 import vn.team9.auction_system.common.dto.product.ProductResponse;
 import vn.team9.auction_system.common.dto.product.ProductUpdateRequest;
+import vn.team9.auction_system.common.dto.product.ProductApprovalRequest;
 import vn.team9.auction_system.common.service.IProductService;
 import vn.team9.auction_system.user.repository.UserRepository;
 
@@ -25,28 +26,33 @@ public class ProductController {
 
 	private final IProductService productService;
 	private final UserRepository userRepository;
-	//tạo product
+
+	// tạo product
 	@PostMapping
 	public ResponseEntity<ProductResponse> createProduct(@RequestBody ProductCreateRequest request) {
-	return ResponseEntity.ok(productService.createProduct(Objects.requireNonNull(request)));
+		return ResponseEntity.ok(productService.createProduct(Objects.requireNonNull(request)));
 	}
-	//cập nhật product
+
+	// cập nhật product
 	@PutMapping("/{id}")
 	public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id,
-														 @RequestBody ProductUpdateRequest request) {
-	return ResponseEntity.ok(productService.updateProduct(Objects.requireNonNull(id), request));
+			@RequestBody ProductUpdateRequest request) {
+		return ResponseEntity.ok(productService.updateProduct(Objects.requireNonNull(id), request));
 	}
-	//lấy product theo trang(api cho list product trong giao diện của bidder)
+
+	// lấy product theo trang(api cho list product trong giao diện của bidder)
 	@GetMapping("/page")
 	public ResponseEntity<Page<ProductResponse>> getProductsPage(@RequestParam(defaultValue = "0") int page) {
 		return ResponseEntity.ok(productService.getProductsPage(page, 10));
 	}
-	//lấy product theo id
+
+	// lấy product theo id
 	@GetMapping("/{id}")
 	public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
-	return ResponseEntity.ok(productService.getProductById(Objects.requireNonNull(id)));
+		return ResponseEntity.ok(productService.getProductById(Objects.requireNonNull(id)));
 	}
-	//xóa product
+
+	// xóa product
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Map<String, Object>> deleteProduct(@PathVariable Long id) {
 		ProductResponse deleted = productService.deleteProduct(Objects.requireNonNull(id));
@@ -61,10 +67,18 @@ public class ProductController {
 	@GetMapping("/seller/me/page")
 	public ResponseEntity<Page<ProductResponse>> getMyProductsPage(
 			@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "10") int size
-	) {
+			@RequestParam(defaultValue = "10") int size) {
 		Long sellerId = getCurrentUserId();
 		return ResponseEntity.ok(productService.getProductsBySellerPage(Objects.requireNonNull(sellerId), page, size));
+	}
+
+	// Admin only: Approve product and set deposit + estimatePrice
+	// TODO: Add @PreAuthorize("hasRole('ADMIN')") when RBAC is implemented
+	@PutMapping("/{id}/approve")
+	public ResponseEntity<ProductResponse> approveProduct(
+			@PathVariable Long id,
+			@RequestBody ProductApprovalRequest request) {
+		return ResponseEntity.ok(productService.approveProduct(Objects.requireNonNull(id), request));
 	}
 
 	private Long getCurrentUserId() {

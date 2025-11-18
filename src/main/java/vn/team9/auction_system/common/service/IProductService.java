@@ -2,17 +2,24 @@ package vn.team9.auction_system.common.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.lang.NonNull;
+import vn.team9.auction_system.common.dto.product.ProductApprovalRequest;
 import vn.team9.auction_system.common.dto.product.ProductCreateRequest;
 import vn.team9.auction_system.common.dto.product.ProductResponse;
 import vn.team9.auction_system.common.dto.product.ProductUpdateRequest;
 
-
 public interface IProductService {
     ProductResponse createProduct(@NonNull ProductCreateRequest request);
+
     ProductResponse updateProduct(@NonNull Long id, ProductUpdateRequest request);
+
     ProductResponse getProductById(@NonNull Long id);
+
     Page<ProductResponse> getProductsPage(int page, int size);
+
     ProductResponse deleteProduct(@NonNull Long id);
 
     Page<ProductResponse> getProductsBySellerPage(@NonNull Long sellerId, int page, int size);
+
+    // Admin only: approve product and set deposit + estimatePrice
+    ProductResponse approveProduct(@NonNull Long id, ProductApprovalRequest request);
 }

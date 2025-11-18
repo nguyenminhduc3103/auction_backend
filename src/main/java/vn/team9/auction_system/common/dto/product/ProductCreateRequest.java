@@ -14,13 +14,12 @@ import java.util.List;
 public class ProductCreateRequest extends BaseRequest {
     private Long sellerId;
     private String name;
-    @JsonAlias({"categories"})
+    @JsonAlias({ "categories" })
     private String category;
     private String description;
     private BigDecimal startPrice;
-    private BigDecimal estimatePrice;
-    private BigDecimal deposit;
+    // estimatePrice and deposit will be set by admin during approval
+    // status will be automatically set to "pending" by system
     private String imageUrl;
-    private String status;
     private List<ImageRequest> images;
 }

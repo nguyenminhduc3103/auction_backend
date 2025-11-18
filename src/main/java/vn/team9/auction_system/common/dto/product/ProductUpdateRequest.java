@@ -14,13 +14,12 @@ import java.util.List;
 public class ProductUpdateRequest extends BaseRequest {
     private Long sellerId;
     private String name;
-    @JsonAlias({"categories"})
+    @JsonAlias({ "categories" })
     private String category;
     private String description;
     private BigDecimal startPrice;
-    private BigDecimal estimatePrice;
-    private BigDecimal deposit;
+    // estimatePrice and deposit can only be set by admin via approval endpoint
+    // status can only be changed by admin or system
     private String imageUrl;
-    private String status;
     private List<ImageRequest> images;
 }
