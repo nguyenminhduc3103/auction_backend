@@ -97,6 +97,8 @@ public class AdminServiceImpl implements IUserService {
         response.setCreatedAt(user.getCreatedAt());
         response.setVerifiedAt(user.getVerifiedAt());
         response.setAvatarUrl(user.getAvatarUrl());
+        response.setReason(user.getBanReason());
+        response.setBannedUntil(user.getBannedUntil());
         return response;
     }
 
