@@ -42,8 +42,10 @@ public class ProductController {
 
 	// lấy product theo trang(api cho list product trong giao diện của bidder)
 	@GetMapping("/page")
-	public ResponseEntity<Page<ProductResponse>> getProductsPage(@RequestParam(defaultValue = "0") int page) {
-		return ResponseEntity.ok(productService.getProductsPage(page, 10));
+	public ResponseEntity<Page<ProductResponse>> getProductsPage(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+		return ResponseEntity.ok(productService.getProductsPage(page, size));
 	}
 
 	// lấy product theo id
