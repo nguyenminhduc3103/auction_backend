@@ -7,7 +7,7 @@ import vn.team9.auction_system.common.service.IAuctionService;
 import vn.team9.auction_system.common.dto.auction.AuctionRequest;
 import vn.team9.auction_system.common.dto.auction.AuctionResponse;
 
-import java.util.List;
+import java.math.BigDecimal;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173")
@@ -23,11 +23,34 @@ public class AuctionController {
         return ResponseEntity.ok(auctionService.createAuction(request));
     }
 
-    //Lấy danh sách tất cả các phiên đấu giá
+    //Lấy danh sách phiên đấu giá theo param
     @GetMapping
-    public ResponseEntity<List<AuctionResponse>> getAllAuctions() {
-        return ResponseEntity.ok(auctionService.getAllAuctions());
+    public ResponseEntity<?> getAuctions(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword,
+
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "startTime,asc") String sort
+    ) {
+        return ResponseEntity.ok(
+                auctionService.getAuctions(
+                        status,
+                        category,
+                        keyword,
+                        minPrice,
+                        maxPrice,
+                        page,
+                        size,
+                        sort
+                )
+        );
     }
+
 
     //Lấy chi tiết 1 phiên đấu giá
     @GetMapping("/{id}")
@@ -62,9 +85,4 @@ public class AuctionController {
         return ResponseEntity.ok().build();
     }
 
-    //Lấy danh sách các đấu giá đang hoạt động
-    @GetMapping("/active")
-    public ResponseEntity<List<AuctionResponse>> getActiveAuctions() {
-        return ResponseEntity.ok(auctionService.getActiveAuctions());
-    }
 }

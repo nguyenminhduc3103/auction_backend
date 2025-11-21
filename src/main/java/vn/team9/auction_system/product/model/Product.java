@@ -26,12 +26,11 @@ public class Product {
     @Column(name = "start_price", precision = 18, scale = 2)
     private BigDecimal startPrice;
 
-    @Column(name = "estimate_price", length = 100)
-    private String estimatePrice;
+    @Column(name = "estimate_price", precision = 18, scale = 2)
+    private BigDecimal estimatePrice;
 
-    @ManyToOne
-    @JoinColumn(name = "category_id")
-    private Category category;
+    @Column(name = "categories")
+    private String category;
 
     @ManyToOne
     @JoinColumn(name = "seller_id")
