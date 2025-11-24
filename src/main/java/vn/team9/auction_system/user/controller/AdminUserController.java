@@ -1,9 +1,11 @@
 package vn.team9.auction_system.user.controller;
 
 import vn.team9.auction_system.common.dto.admin.BanUserRequest;
+import vn.team9.auction_system.common.dto.transaction.TransactionResponse;
 import vn.team9.auction_system.common.dto.user.UserRequest;
 import vn.team9.auction_system.common.dto.user.UserResponse;
 import vn.team9.auction_system.common.service.IUserService;
+import vn.team9.auction_system.user.service.AdminServiceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,10 +15,13 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
+
 @RestController
 @RequestMapping("api/admin/users")
 @RequiredArgsConstructor
 public class AdminUserController {
+
+    private final AdminServiceImpl adminServiceImpl;
 
     @Autowired
     private IUserService userService;
@@ -48,9 +53,15 @@ public class AdminUserController {
         return ResponseEntity.ok(userService.unbanUser(id));
     }
 
-
     @DeleteMapping("/{id}")
     public void deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
     }
+    
+    
+    @GetMapping("/{id}/transactions")
+    public List<TransactionResponse> getUserTransactions(@PathVariable Long id) {
+        return adminServiceImpl.getAllTransactions(id);
+    }
+    
 }

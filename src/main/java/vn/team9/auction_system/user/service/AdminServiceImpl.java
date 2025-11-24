@@ -1,9 +1,13 @@
 package vn.team9.auction_system.user.service;
 
 import vn.team9.auction_system.common.dto.admin.BanUserRequest;
+import vn.team9.auction_system.common.dto.transaction.TransactionResponse;
 import vn.team9.auction_system.common.dto.user.UserRequest;
 import vn.team9.auction_system.common.dto.user.UserResponse;
 import vn.team9.auction_system.common.service.IUserService;
+import vn.team9.auction_system.transaction.mapper.UserTransactionMapper;
+import vn.team9.auction_system.transaction.model.AccountTransaction;
+import vn.team9.auction_system.transaction.repository.AccountTransactionRepository;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
 
@@ -18,6 +22,9 @@ public class AdminServiceImpl implements IUserService {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private AccountTransactionRepository accountTransactionRepository;
 
     @Override
     public UserResponse updateUser(Long id, UserRequest request) {
@@ -105,5 +112,15 @@ public class AdminServiceImpl implements IUserService {
     @Override
     public UserResponse register(UserRequest request) {
         throw new UnsupportedOperationException("Register not supported in AdminServiceImpl");
+    }
+
+    @Override
+    public List<TransactionResponse> getAllTransactions(Long userId) {
+        List<AccountTransaction> transactions = 
+                accountTransactionRepository.findByUser_UserId(userId);
+
+        return transactions.stream()
+                .map(UserTransactionMapper::toDto)
+                .toList();
     }
 }
