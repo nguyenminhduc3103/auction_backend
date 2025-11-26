@@ -56,8 +56,7 @@ public class AdminUserController {
     @DeleteMapping("/{id}")
     public void deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
-    }
-    
+    } 
     
     @GetMapping("/{id}/transactions")
     public List<TransactionResponse> getUserTransactions(@PathVariable Long id) {
