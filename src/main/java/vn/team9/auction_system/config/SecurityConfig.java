@@ -26,6 +26,8 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/auth/**").permitAll()
+                    // Public: View any user's profile
+                    .requestMatchers(HttpMethod.GET, "/api/users/{id}").permitAll()
                     // Require auth for seller's own listing
                     .requestMatchers(HttpMethod.GET, "/api/products/seller/me/**").authenticated()
                     // Public browse for other product GETs

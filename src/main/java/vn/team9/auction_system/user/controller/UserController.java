@@ -32,6 +32,12 @@ public class UserController {
         return ResponseEntity.ok(userService.getByEmail(email));
     }
 
+    // 🧩 Lấy public profile của user theo ID
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getPublicProfile(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getPublicProfile(id));
+    }
+
     // 🧩 Cập nhật thông tin cá nhân
     @PutMapping("/me")
     public ResponseEntity<UserResponse> updateCurrentUser(

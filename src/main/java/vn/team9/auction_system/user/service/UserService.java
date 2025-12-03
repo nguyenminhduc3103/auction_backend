@@ -27,6 +27,14 @@ public class UserService {
         return userMapper.toResponse(user);
     }
 
+    // Lấy public profile của user theo ID
+    @Transactional
+    public UserResponse getPublicProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
+        return userMapper.toResponse(user);
+    }
+
     // Cập nhật user theo email (dành cho /me)
     public UserResponse updateByEmail(String email, UpdateUserDTO request) {
         User user = userRepository.findByEmail(email)
