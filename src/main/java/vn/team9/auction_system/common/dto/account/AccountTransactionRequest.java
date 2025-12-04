@@ -7,5 +7,5 @@ import java.math.BigDecimal;
 public class AccountTransactionRequest {
     private Long userId;
     private BigDecimal amount;
-    private String type; // DEPOSIT, WITHDRAW, PAYMENT, REFUND
+    private String type; // DEPOSIT, WITHDRAW, TRANSFER, RECEIVED
 }
