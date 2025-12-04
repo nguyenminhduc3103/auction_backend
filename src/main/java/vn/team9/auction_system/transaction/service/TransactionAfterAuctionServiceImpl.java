@@ -27,6 +27,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     private final AccountTransactionRepository accountRepo;
     private final UserRepository userRepo;
     private final TransactionMapper transactionMapper;
+    private final AccountTransactionServiceImpl accountTransactionServiceImpl;
 
     // ------------------------------------
     // Buyer thanh toán (tiền vào escrow)
@@ -52,8 +53,9 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
             throw new IllegalArgumentException("Invalid transaction amount");
         }
 
-        if (buyer.getBalance().compareTo(amount) < 0) {
-            throw new IllegalStateException("Insufficient balance to initiate escrow payment");
+        BigDecimal withdrawable = accountTransactionServiceImpl.getWithdrawable(buyer.getUserId());
+        if (withdrawable.compareTo(amount) < 0) {
+            throw new IllegalStateException("Insufficient available balance to initiate escrow payment");
         }
 
         // 1) Trừ tiền buyer 1 lần để hold (escrow)

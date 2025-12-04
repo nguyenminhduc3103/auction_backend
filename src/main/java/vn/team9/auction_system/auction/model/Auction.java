@@ -33,7 +33,7 @@ public class Auction {
     private LocalDateTime endTime;
 
     @Column(name = "status")
-    private String status; // ACTIVE, ENDED, CANCELLED,...
+    private String status; // OPEN, PENDING, CLOSED, CANCELLED
 
     @Column(name = "highest_current_price")
     private BigDecimal highestCurrentPrice;
