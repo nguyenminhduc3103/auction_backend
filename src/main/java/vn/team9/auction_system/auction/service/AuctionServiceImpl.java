@@ -1,10 +1,16 @@
 package vn.team9.auction_system.auction.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.team9.auction_system.auction.model.Auction;
 import vn.team9.auction_system.auction.repository.AuctionRepository;
+import vn.team9.auction_system.auction.repository.AuctionSpecification;
 import vn.team9.auction_system.common.dto.auction.AuctionRequest;
 import vn.team9.auction_system.common.dto.auction.AuctionResponse;
 import vn.team9.auction_system.common.service.IAuctionService;
@@ -52,21 +58,50 @@ public class AuctionServiceImpl implements IAuctionService {
     }
 
     //Lấy thông tin phiên đấu giá theo ID
+    //Lấy danh sách các phiên đang hoạt động
     @Override
     @Transactional(readOnly = true)
     public AuctionResponse getAuctionById(Long id) {
-        Auction auction = auctionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Auction not found with id: " + id));
+        Auction auction = auctionRepository.findByIdWithSellerAndImages(id)
+                .orElseThrow(() -> new RuntimeException("Auction not found: " + id));
+
         return mapToResponse(auction);
     }
 
-    //Lấy danh sách tất cả phiên đấu giá
-    @Override
     @Transactional(readOnly = true)
-    public List<AuctionResponse> getAllAuctions() {
-        return auctionRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    @Override
+    public Page<AuctionResponse> getAuctions(
+            String status,
+            String category,
+            String keyword,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            int page,
+            int size,
+            String sort
+    ) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        sort.split(",")[1].equals("asc")
+                                ? Sort.Direction.ASC
+                                : Sort.Direction.DESC,
+                        sort.split(",")[0]
+                )
+        );
+
+        Specification<Auction> spec = Specification.where(
+                        AuctionSpecification.hasStatus(status)
+                )
+                .and(AuctionSpecification.excludeStatus("CLOSED"))
+                .and(AuctionSpecification.hasCategory(category))
+                .and(AuctionSpecification.hasKeyword(keyword))
+                .and(AuctionSpecification.hasPriceRange(minPrice, maxPrice));
+
+        Page<Auction> auctions = auctionRepository.findAll(spec, pageable);
+
+        return auctions.map(this::mapToResponse);
     }
 
     //Cập nhật thông tin phiên đấu giá
@@ -144,15 +179,6 @@ public class AuctionServiceImpl implements IAuctionService {
         }
 
         auctionRepository.save(auction);
-    }
-
-    //Lấy danh sách các phiên đang hoạt động
-    @Override
-    @Transactional(readOnly = true)
-    public List<AuctionResponse> getActiveAuctions() {
-        return auctionRepository.findByStatus("OPEN").stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
     }
 
     //map Entity → DTO
