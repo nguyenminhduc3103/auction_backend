@@ -17,6 +17,25 @@ public class UploadController {
 
     private final Cloudinary cloudinary;
 
+    @PostMapping
+    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap("folder", "auction_images")
+            );
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("image_url", uploadResult.get("secure_url"));
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError()
+                    .body("Upload thất bại: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/multiple")
     public ResponseEntity<?> uploadMultipleImages(@RequestParam("files") MultipartFile[] files) {
         try {

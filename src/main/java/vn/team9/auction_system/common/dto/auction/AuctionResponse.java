@@ -1,13 +1,16 @@
 package vn.team9.auction_system.common.dto.auction;
 
-import vn.team9.auction_system.common.base.BaseResponse;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import vn.team9.auction_system.common.base.BaseResponse;
+
 import java.math.BigDecimal;
 import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class AuctionResponse extends BaseResponse {
     private Long auctionId;
     private LocalDateTime startTime;
@@ -26,6 +29,8 @@ public class AuctionResponse extends BaseResponse {
     // Category
     private String categoryName;
 
+    private BigDecimal startPrice;            // giá khởi điểm
+    private BigDecimal estimatePrice;         // giá ước tính
     // Seller
     private Long sellerId;
     private String sellerName;

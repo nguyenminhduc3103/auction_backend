@@ -29,13 +29,14 @@ public class SecurityConfig {
                         .requestMatchers(PublicEndpoints.PUBLIC_API).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auctions/**").permitAll()
                         .anyRequest().authenticated()
+                    .requestMatchers("/api/auth/**").permitAll()
+                    // Require auth for seller's own listing
+                    .requestMatchers(HttpMethod.GET, "/api/products/seller/me/**").authenticated()
+                    // Public browse for other product GETs
+                    .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                    .anyRequest().authenticated()
                 )
-
-
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
