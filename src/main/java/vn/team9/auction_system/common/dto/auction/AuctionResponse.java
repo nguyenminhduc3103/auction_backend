@@ -28,8 +28,7 @@ public class AuctionResponse extends BaseResponse {
 
     // Category
     private String categoryName;
-
-    private BigDecimal startPrice;            // giá khởi điểm
+     // giá khởi điểm
     private BigDecimal estimatePrice;         // giá ước tính
     // Seller
     private Long sellerId;
