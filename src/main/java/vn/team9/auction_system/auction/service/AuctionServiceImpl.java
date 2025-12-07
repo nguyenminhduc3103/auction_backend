@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.team9.auction_system.auction.model.Auction;
 import vn.team9.auction_system.auction.repository.AuctionRepository;
 import vn.team9.auction_system.auction.repository.AuctionSpecification;
-import vn.team9.auction_system.auction.repository.BidRepository;
 import vn.team9.auction_system.common.dto.auction.AuctionRequest;
 import vn.team9.auction_system.common.dto.auction.AuctionResponse;
 import vn.team9.auction_system.common.service.IAuctionService;
@@ -38,7 +37,6 @@ public class AuctionServiceImpl implements IAuctionService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final TransactionAfterAuctionRepository transactionAfterAuctionRepository;
-    private final BidRepository bidRepository;
 
 
     //Tạo phiên đấu giá mới
@@ -57,6 +55,53 @@ public class AuctionServiceImpl implements IAuctionService {
 
         Auction saved = auctionRepository.save(auction);
         return mapToResponse(saved);
+    }
+
+    //Lấy thông tin phiên đấu giá theo ID
+    //Lấy danh sách các phiên đang hoạt động
+    @Override
+    @Transactional(readOnly = true)
+    public AuctionResponse getAuctionById(Long id) {
+        Auction auction = auctionRepository.findByIdWithSellerAndImages(id)
+                .orElseThrow(() -> new RuntimeException("Auction not found: " + id));
+
+        return mapToResponse(auction);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Page<AuctionResponse> getAuctions(
+            String status,
+            String category,
+            String keyword,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            int page,
+            int size,
+            String sort
+    ) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        sort.split(",")[1].equals("asc")
+                                ? Sort.Direction.ASC
+                                : Sort.Direction.DESC,
+                        sort.split(",")[0]
+                )
+        );
+
+        Specification<Auction> spec = Specification.where(
+                        AuctionSpecification.hasStatus(status)
+                )
+                .and(AuctionSpecification.excludeStatus("CLOSED"))
+                .and(AuctionSpecification.hasCategory(category))
+                .and(AuctionSpecification.hasKeyword(keyword))
+                .and(AuctionSpecification.hasPriceRange(minPrice, maxPrice));
+
+        Page<Auction> auctions = auctionRepository.findAll(spec, pageable);
+
+        return auctions.map(this::mapToResponse);
     }
 
     //Cập nhật thông tin phiên đấu giá
@@ -136,98 +181,37 @@ public class AuctionServiceImpl implements IAuctionService {
         auctionRepository.save(auction);
     }
 
-    //Lấy thông tin phiên đấu giá theo ID
-    @Override
-    @Transactional(readOnly = true)
-    public AuctionResponse getAuctionById(Long id) {
-        Auction auction = auctionRepository.findByIdWithSellerAndImages(id)
-                .orElseThrow(() -> new RuntimeException("Auction not found: " + id));
-
-        return mapToResponse(auction);
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public Page<AuctionResponse> getAuctions(
-            String status,
-            String category,
-            String keyword,
-            BigDecimal minPrice,
-            BigDecimal maxPrice,
-            int page,
-            int size,
-            String sort
-    ) {
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by(
-                        sort.split(",")[1].equals("asc")
-                                ? Sort.Direction.ASC
-                                : Sort.Direction.DESC,
-                        sort.split(",")[0]
-                )
-        );
-
-        Specification<Auction> spec = Specification.where(
-                        AuctionSpecification.hasStatus(status)
-                )
-                .and(AuctionSpecification.excludeStatus("CLOSED"))
-                .and(AuctionSpecification.hasCategory(category))
-                .and(AuctionSpecification.hasKeyword(keyword))
-                .and(AuctionSpecification.hasPriceRange(minPrice, maxPrice));
-
-        Page<Auction> auctions = auctionRepository.findAll(spec, pageable);
-
-        return auctions.map(this::mapToResponse);
-    }
-
     //map Entity → DTO
     private AuctionResponse mapToResponse(Auction auction) {
         AuctionResponse res = new AuctionResponse();
-
-        // Auction info
         res.setAuctionId(auction.getAuctionId());
         res.setStartTime(auction.getStartTime());
         res.setEndTime(auction.getEndTime());
         res.setHighestBid(auction.getHighestCurrentPrice());
         res.setStatus(auction.getStatus());
 
-        // Product
-        Product product = auction.getProduct();
-        res.setProductId(product.getProductId());
-        res.setProductName(product.getName());
-        res.setCategoryName(product.getCategory());
-        res.setStartPrice(product.getStartPrice());
-        res.setProductDescription(product.getDescription());
-
-        // Images
-        if (product.getImages() != null && !product.getImages().isEmpty()) {
-            // list
-            List<String> urls = product.getImages().stream()
-                    .map(Image::getUrl)
+        // Map ảnh sản phẩm
+        if (auction.getProduct().getImages() != null && !auction.getProduct().getImages().isEmpty()) {
+            List<String> urls = auction.getProduct().getImages().stream()
+                    .map(Image::getUrl)   // lấy tất cả url
                     .collect(Collectors.toList());
             res.setProductImageUrls(urls);
 
-            // thumbnail
+            // Lấy ảnh thumbnail nếu có, nếu không có thì lấy ảnh đầu tiên
             res.setProductImageUrl(
-                    product.getImages().stream()
+                    auction.getProduct().getImages().stream()
                             .filter(img -> Boolean.TRUE.equals(img.getIsThumbnail()))
                             .findFirst()
-                            .orElse(product.getImages().getFirst())
+                            .orElse(auction.getProduct().getImages().getFirst())
                             .getUrl()
             );
         }
-
-        // Seller
-        User seller = product.getSeller();
-        if (seller != null) {
-            res.setSellerId(seller.getUserId());
-            res.setSellerName(seller.getUsername());
-        }
-
-        // totalBids
-        res.setTotalBidders(bidRepository.countDistinctBidders(auction.getAuctionId()));
+        res.setStartPrice(auction.getProduct().getStartPrice());
+        res.setEstimatePrice(auction.getProduct().getEstimatePrice());
+        res.setStartTime(auction.getStartTime());
+        res.setEndTime(auction.getEndTime());
+        res.setHighestBid(auction.getHighestCurrentPrice());
+        res.setStatus(auction.getStatus());
         return res;
     }
 }
