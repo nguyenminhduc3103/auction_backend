@@ -1,5 +1,7 @@
 package vn.team9.auction_system.user.repository;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Repository;
 import vn.team9.auction_system.user.model.User;
 
@@ -12,4 +14,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
     boolean existsByUsernameAndUserIdNot(String username, Long userId);
     boolean existsByEmailAndUserIdNot(String email, Long userId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<User> findByUserId(Long userId);
 }
