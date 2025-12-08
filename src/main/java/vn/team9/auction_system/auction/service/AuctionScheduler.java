@@ -19,7 +19,7 @@ public class AuctionScheduler {
     private final IAuctionService auctionService; // dùng service hiện tại
 
     // Chạy mỗi phút
-    // @Scheduled(cron = "*/10 * * * * *")
+    @Scheduled(cron = "*/10 * * * * *")
     @Transactional
     public void checkAuctions() {
         LocalDateTime now = LocalDateTime.now();
