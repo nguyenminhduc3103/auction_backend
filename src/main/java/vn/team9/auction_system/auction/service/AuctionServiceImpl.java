@@ -223,7 +223,7 @@ public class AuctionServiceImpl implements IAuctionService {
         User seller = product.getSeller();
         if (seller != null) {
             res.setSellerId(seller.getUserId());
-            res.setSellerName(seller.getUsername());
+            res.setSellerName(seller.getFullName());
         }
 
         // totalBids
