@@ -39,7 +39,7 @@ public class Auction {
     private BigDecimal highestCurrentPrice;
 
     @Column(name = "bid_step_amount")
-    private String bidStepAmount;
+    private BigDecimal bidStepAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "winner_id")
