@@ -17,6 +17,7 @@ public class AuctionResponse extends BaseResponse {
     private LocalDateTime endTime;
     private BigDecimal highestBid;
     private String status;
+    private BigDecimal bidStepAmount;
 
     // Product
     private Long productId;

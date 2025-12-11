@@ -53,7 +53,7 @@ public class AuctionServiceImpl implements IAuctionService {
         auction.setEndTime(request.getEndTime());
         auction.setStatus("PENDING");
         auction.setHighestCurrentPrice(BigDecimal.ZERO);
-        auction.setBidStepAmount("10000"); // default step amount
+        auction.setBidStepAmount(BigDecimal.valueOf(10000));// default step amount
 
         Auction saved = auctionRepository.save(auction);
         return mapToResponse(saved);
@@ -192,6 +192,7 @@ public class AuctionServiceImpl implements IAuctionService {
         res.setEndTime(auction.getEndTime());
         res.setHighestBid(auction.getHighestCurrentPrice());
         res.setStatus(auction.getStatus());
+        res.setBidStepAmount(auction.getBidStepAmount());
 
         // Product
         Product product = auction.getProduct();
@@ -200,6 +201,7 @@ public class AuctionServiceImpl implements IAuctionService {
         res.setCategoryName(product.getCategory());
         res.setStartPrice(product.getStartPrice());
         res.setProductDescription(product.getDescription());
+        res.setEstimatePrice(product.getEstimatePrice());
 
         // Images
         if (product.getImages() != null && !product.getImages().isEmpty()) {
