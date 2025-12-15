@@ -1,14 +1,14 @@
 package vn.team9.auction_system.feedback.mapper;
 
+import vn.team9.auction_system.common.dto.admin.UserWarningLogRequest;
+import vn.team9.auction_system.common.dto.admin.UserWarningLogResponse;
 import vn.team9.auction_system.feedback.model.Feedback;
 import vn.team9.auction_system.feedback.model.Notification;
-import vn.team9.auction_system.feedback.model.AdminLog;
+import vn.team9.auction_system.feedback.model.UserWarningLog;
 import vn.team9.auction_system.common.dto.feedback.FeedbackRequest;
 import vn.team9.auction_system.common.dto.feedback.FeedbackResponse;
 import vn.team9.auction_system.common.dto.notification.NotificationRequest;
 import vn.team9.auction_system.common.dto.notification.NotificationResponse;
-import vn.team9.auction_system.common.dto.admin.AdminLogRequest;
-import vn.team9.auction_system.common.dto.admin.AdminLogResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -30,10 +30,11 @@ public interface FeedbackMapper {
     @Mapping(source = "user.userId", target = "userId")
     NotificationResponse toResponse(Notification entity);
 
-    // AdminLogRequest -> AdminLog entity
-    AdminLog toEntity(AdminLogRequest request);
+    // map UserWarningLogRequest -> UserWarningLog entity
+    UserWarningLog toEntity(UserWarningLogRequest request);
 
-    // AdminLog entity -> AdminLogResponse
-    @Mapping(source = "admin.userId", target = "adminId")
-    AdminLogResponse toResponse(AdminLog entity);
+    // map UserWarningLog entity -> UserWarningLogResponse
+    @Mapping(source = "user.userId", target = "userId")
+    @Mapping(source = "transaction.transactionId", target = "transactionId")
+    UserWarningLogResponse toResponse(UserWarningLog entity);
 }

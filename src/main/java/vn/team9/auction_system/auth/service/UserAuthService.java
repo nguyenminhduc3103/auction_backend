@@ -43,6 +43,7 @@ public class UserAuthService {
                 System.out.println("Đã gửi lại email xác thực cho " + existingUser.getEmail());
 
                 return AuthResponse.builder()
+                        .userId(existingUser.getUserId())
                         .gender(existingUser.getGender())
                         .email(existingUser.getEmail())
                         .fullName(existingUser.getFullName())
@@ -78,6 +79,7 @@ public class UserAuthService {
         emailService.sendVerificationEmail(user.getEmail(), user.getVerificationToken());
 
         return AuthResponse.builder()
+                .userId(user.getUserId())
                 .accessToken(null)
                 .tokenType("Bearer")
                 .username(user.getUsername())
@@ -148,6 +150,7 @@ public class UserAuthService {
         // ACTIVE -> login bình thường
         String token = jwtService.generateToken(user.getEmail());
         return AuthResponse.builder()
+                .userId(user.getUserId())
                 .accessToken(token)
                 .tokenType("Bearer")
                 .username(user.getUsername())

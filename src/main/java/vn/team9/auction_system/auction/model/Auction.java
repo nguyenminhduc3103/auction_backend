@@ -33,13 +33,13 @@ public class Auction {
     private LocalDateTime endTime;
 
     @Column(name = "status")
-    private String status; // ACTIVE, ENDED, CANCELLED,...
+    private String status; // OPEN, PENDING, CLOSED, CANCELLED
 
     @Column(name = "highest_current_price")
     private BigDecimal highestCurrentPrice;
 
     @Column(name = "bid_step_amount")
-    private String bidStepAmount;
+    private BigDecimal bidStepAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "winner_id")
