@@ -17,7 +17,7 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("api/admin/users")
+@RequestMapping("api/superadmin/users")
 @RequiredArgsConstructor
 public class AdminUserController {
 

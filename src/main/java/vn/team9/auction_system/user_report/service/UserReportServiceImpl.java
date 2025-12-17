@@ -32,4 +32,11 @@ public class UserReportServiceImpl implements IUserReportService {
                 .map(UserReportMapper.INSTANCE::toResponse)
                 .collect(Collectors.toList());
     }
+    public List<UserReportResponse> getAllReports() {
+        return userReportRepository.findAll()
+               .stream()
+               .map(UserReportMapper.INSTANCE::toResponse)
+               .toList();
+    }
+
 }
