@@ -20,6 +20,11 @@
         public UserWarningLogResponse createWarning(@RequestBody UserWarningLogRequest request) {
             return warningService.createWarning(request);
         }
+        @GetMapping
+        public List<UserWarningLogResponse> getAllWarnings() {
+            return warningService.getAllWarnings();
+        }
+
 
         @GetMapping("/user/{userId}")
         public List<UserWarningLogResponse> getWarningsByUser(@PathVariable Long userId) {
