@@ -58,6 +58,12 @@ public class AdminUserController {
         userService.deleteUser(id);
     } 
     
+    @PutMapping("/{id}/soft-delete")
+    public ResponseEntity<UserResponse> softDeleteUser(@PathVariable Long id) {
+        UserResponse user = userService.softDeleteUser(id);
+        return ResponseEntity.ok(user);
+    }
+
     @GetMapping("/{id}/transactions")
     public List<TransactionResponse> getUserTransactions(@PathVariable Long id) {
         return adminServiceImpl.getAllTransactions(id);

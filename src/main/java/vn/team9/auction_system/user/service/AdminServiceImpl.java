@@ -54,15 +54,28 @@ public class AdminServiceImpl implements IUserService {
     @Override
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
+            .filter(user -> user.getIsDeleted() == null || !user.getIsDeleted())
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
+}
+
 
     @Override
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         userRepository.delete(user);
+    }
+
+        // --- Soft delete ---
+    public UserResponse softDeleteUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setIsDeleted(true); // đánh dấu soft delete
+        userRepository.save(user);
+
+        return mapToResponse(user);
     }
 
     @Override

@@ -15,4 +15,5 @@ public interface IUserService {
     List<UserResponse> getAllUsers();
     void deleteUser(Long id);
     List<TransactionResponse> getAllTransactions(Long userId);
+    UserResponse softDeleteUser(Long id);
 }

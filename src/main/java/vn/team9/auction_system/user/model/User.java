@@ -62,6 +62,9 @@ public class User {
     @Column(name = "ban_reason")
     private String banReason;
 
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
     @Column(name = "avatar_url")
     private String avatarUrl;
 
