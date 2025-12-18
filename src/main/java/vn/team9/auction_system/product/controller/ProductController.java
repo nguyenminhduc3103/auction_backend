@@ -83,6 +83,12 @@ public class ProductController {
 		return ResponseEntity.ok(productService.approveProduct(Objects.requireNonNull(id), request));
 	}
 
+	// Seller submits a product for admin approval (draft -> pending)
+	@PostMapping("/{id}/approval-request")
+	public ResponseEntity<ProductResponse> requestApproval(@PathVariable Long id) {
+		return ResponseEntity.ok(productService.requestApproval(Objects.requireNonNull(id)));
+	}
+
 	private Long getCurrentUserId() {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		if (authentication == null || !authentication.isAuthenticated()) {

@@ -42,8 +42,8 @@ public class ProductService implements IProductService {
 		Product product = productMapper.toEntity(request);
 		product.setSeller(getCurrentUser());
 
-		// Status is always set to "pending" by system - seller cannot set this
-		product.setStatus("pending");
+		// Status starts as draft until seller requests approval
+		product.setStatus("draft");
 
 		// Seller cannot set deposit and estimatePrice - these will be set by admin
 		// during approval
@@ -157,6 +157,32 @@ public class ProductService implements IProductService {
 
 		Product approved = productRepository.save(Objects.requireNonNull(product));
 		return productMapper.toResponse(approved);
+	}
+
+	@Override
+	public ProductResponse requestApproval(@NonNull Long id) {
+		Product product = productRepository.findByProductIdAndIsDeletedFalse(id)
+				.orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+
+		User current = getCurrentUser();
+		if (product.getSeller() == null || !product.getSeller().getUserId().equals(current.getUserId())) {
+			throw new RuntimeException("Bạn không có quyền gửi phê duyệt sản phẩm này");
+		}
+
+		String currentStatus = product.getStatus() == null ? "" : product.getStatus().toLowerCase();
+		if ("pending".equals(currentStatus)) {
+			return productMapper.toResponse(product);
+		}
+		if (!"draft".equals(currentStatus)) {
+			throw new RuntimeException("Sản phẩm ở trạng thái hiện tại không thể gửi phê duyệt");
+		}
+
+		product.setStatus("pending");
+		product.setDeposit(null);
+		product.setEstimatePrice(null);
+
+		Product submitted = productRepository.save(product);
+		return productMapper.toResponse(submitted);
 	}
 
 	// Removed resolveSeller(Long) as seller is now bound to current token

@@ -44,7 +44,7 @@ public class Product {
     private String imageUrl;
 
     @Column(length = 20)
-    private String status;
+    private String status;//daft, pending, approved, rejected, closed
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();

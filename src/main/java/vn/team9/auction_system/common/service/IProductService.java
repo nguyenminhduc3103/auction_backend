@@ -22,4 +22,7 @@ public interface IProductService {
 
     // Admin only: approve product and set deposit + estimatePrice
     ProductResponse approveProduct(@NonNull Long id, ProductApprovalRequest request);
+
+    // Seller submits a product for admin approval (moves draft -> pending)
+    ProductResponse requestApproval(@NonNull Long id);
 }
