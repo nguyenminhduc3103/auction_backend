@@ -24,4 +24,8 @@ public class UserReportController {
     public List<UserReportResponse> getReportsByUser(@PathVariable Long userId) {
         return userReportService.getReportsByUserId(userId);
     }
+    @GetMapping
+    public List<UserReportResponse> getAllReports() {
+    return userReportService.getAllReports();
+}
 }
