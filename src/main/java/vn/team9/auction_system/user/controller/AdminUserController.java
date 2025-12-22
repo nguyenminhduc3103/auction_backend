@@ -9,6 +9,7 @@ import vn.team9.auction_system.user.service.AdminServiceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import lombok.RequiredArgsConstructor;
@@ -27,21 +28,25 @@ public class AdminUserController {
     private IUserService userService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('GET:/api/superadmin/users')")
     public List<UserResponse> getAllUsers() {
         return userService.getAllUsers();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('GET:/api/superadmin/users/{id}')")
     public UserResponse getUser(@PathVariable Long id) {
         return userService.getUserById(id);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('PUT:/api/superadmin/users/{id}')")
     public UserResponse updateUser(@PathVariable Long id, @RequestBody UserRequest request) {
         return userService.updateUser(id, request);
     }
 
     @PutMapping("/{id}/ban")
+    @PreAuthorize("hasAuthority('PUT:/api/superadmin/users/{id}/ban')")
     public ResponseEntity<UserResponse> banUser(
             @PathVariable Long id,
             @RequestBody BanUserRequest request) {
@@ -49,22 +54,26 @@ public class AdminUserController {
     }
 
     @PutMapping("/{id}/unban")
+    @PreAuthorize("hasAuthority('PUT:/api/superadmin/users/{id}/unban')")
     public ResponseEntity<UserResponse> unbanUser(@PathVariable Long id) {
         return ResponseEntity.ok(userService.unbanUser(id));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('DELETE:/api/superadmin/users/{id}')")
     public void deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
     } 
     
     @PutMapping("/{id}/soft-delete")
+    @PreAuthorize("hasAuthority('PUT:/api/superadmin/users/{id}/soft-delete')")
     public ResponseEntity<UserResponse> softDeleteUser(@PathVariable Long id) {
         UserResponse user = userService.softDeleteUser(id);
         return ResponseEntity.ok(user);
     }
 
     @GetMapping("/{id}/transactions")
+    @PreAuthorize("hasAuthority('GET:/api/superadmin/users/{id}/transactions')")
     public List<TransactionResponse> getUserTransactions(@PathVariable Long id) {
         return adminServiceImpl.getAllTransactions(id);
     }

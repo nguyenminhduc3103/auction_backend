@@ -3,6 +3,7 @@ package vn.team9.auction_system.user.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
@@ -27,6 +28,7 @@ public class UserController {
 
     // 🧩 Lấy thông tin của chính mình
     @GetMapping("/me")
+    @PreAuthorize("hasAuthority('GET:/api/users/me')")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
         String email = authentication.getName();
         return ResponseEntity.ok(userService.getByEmail(email));
@@ -34,12 +36,14 @@ public class UserController {
 
     // 🧩 Lấy public profile của user theo ID
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('GET:/api/users/{id}')")
     public ResponseEntity<UserResponse> getPublicProfile(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getPublicProfile(id));
     }
 
     // 🧩 Cập nhật thông tin cá nhân
     @PutMapping("/me")
+    @PreAuthorize("hasAuthority('PUT:/api/users/me')")
     public ResponseEntity<UserResponse> updateCurrentUser(
             Authentication authentication,
             @Valid @RequestBody UpdateUserDTO request
@@ -50,6 +54,7 @@ public class UserController {
 
     // 🧩 Đổi mật khẩu
     @PatchMapping("/change-password")
+    @PreAuthorize("hasAuthority('PATCH:/api/users/change-password')")
     public ResponseEntity<?> changePassword(Authentication authentication, @RequestBody ChangePasswordRequest req) {
         String email = authentication.getName();
         userService.changePasswordByEmail(email, req);
@@ -58,6 +63,7 @@ public class UserController {
 
     // 🧩 Cập nhật avatar (single file)
     @PutMapping("/me/avatar")
+    @PreAuthorize("hasAuthority('PUT:/api/users/me/avatar')")
     public ResponseEntity<?> updateAvatar(
             Authentication authentication,
             @RequestParam("file") MultipartFile file

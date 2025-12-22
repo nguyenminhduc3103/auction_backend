@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +19,7 @@ public class UploadController {
     private final Cloudinary cloudinary;
 
     @PostMapping
+    @PreAuthorize("hasAuthority('POST:/api/upload')")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
             @SuppressWarnings("unchecked")
@@ -44,6 +46,7 @@ public class UploadController {
     }
 
     @PostMapping("/multiple")
+    @PreAuthorize("hasAuthority('POST:/api/upload/multiple')")
     public ResponseEntity<?> uploadMultipleImages(@RequestParam("files") MultipartFile[] files) {
         try {
             List<Map<String, Object>> uploadedImages = new ArrayList<>();

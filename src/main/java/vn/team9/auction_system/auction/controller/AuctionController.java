@@ -2,6 +2,7 @@ package vn.team9.auction_system.auction.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.team9.auction_system.common.service.IAuctionService;
 import vn.team9.auction_system.common.dto.auction.AuctionRequest;
@@ -19,6 +20,7 @@ public class AuctionController {
 
     //Tạo phiên đấu giá
     @PostMapping
+    @PreAuthorize("hasAuthority('POST:/api/auctions')")
     public ResponseEntity<AuctionResponse> createAuction(@RequestBody AuctionRequest request) {
         return ResponseEntity.ok(auctionService.createAuction(request));
     }
@@ -60,12 +62,14 @@ public class AuctionController {
 
     //Cập nhật đấu giá
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('PUT:/api/auctions/{id}')")
     public ResponseEntity<AuctionResponse> updateAuction(@PathVariable Long id, @RequestBody AuctionRequest request) {
         return ResponseEntity.ok(auctionService.updateAuction(id, request));
     }
 
     //Xóa đấu giá
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('DELETE:/api/auctions/{id}')")
     public ResponseEntity<Void> deleteAuction(@PathVariable Long id) {
         auctionService.deleteAuction(id);
         return ResponseEntity.noContent().build();
@@ -73,6 +77,7 @@ public class AuctionController {
 
     //Bắt đầu đấu giá (OPEN)
     @PostMapping("/{auctionId}/start")
+    @PreAuthorize("hasAuthority('POST:/api/auctions/{auctionId}/start')")
     public ResponseEntity<Void> startAuction(@PathVariable Long auctionId) {
         auctionService.startAuction(auctionId);
         return ResponseEntity.ok().build();
@@ -80,6 +85,7 @@ public class AuctionController {
 
     //Đóng đấu giá (CLOSE)
     @PostMapping("/{auctionId}/close")
+    @PreAuthorize("hasAuthority('POST:/api/auctions/{auctionId}/close')")
     public ResponseEntity<Void> closeAuction(@PathVariable Long auctionId) {
         auctionService.closeAuction(auctionId);
         return ResponseEntity.ok().build();

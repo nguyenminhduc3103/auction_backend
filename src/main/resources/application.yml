@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: auction-system
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  datasource:
+    url: jdbc:mysql://localhost:3306/auction_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+    username: root
+    password: Duy080205
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: nguyenkimngoctum@gmail.com
+    password: zoqs imtt nijw dtqp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+jwt:
+  secret: DoiChuBoZzzzzzzzzzzzzzzzzzzzdskopaiJD0OIPASjdoiknsqaoidnasojkdasplkdjnlaksndlksandolksa
+  expiration: 3600000
+vietqr:
+  bank-code: 970422
+  account-number: 1903202304
+  template: compact2
+cloudinary:
+  cloud_name: dzoz7ngp5
+  api_key: 866956232565748
+  api_secret: H_zKfwDRCn_jCtXRxKENC3itS9M
