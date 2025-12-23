@@ -25,14 +25,12 @@ public class UserController {
 
     private final UserService userService;
 
-    // 🧩 Lấy thông tin của chính mình
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
         String email = authentication.getName();
         return ResponseEntity.ok(userService.getByEmail(email));
     }
 
-    // 🧩 Cập nhật thông tin cá nhân
     @PutMapping("/me")
     public ResponseEntity<UserResponse> updateCurrentUser(
             Authentication authentication,
@@ -42,7 +40,6 @@ public class UserController {
         return ResponseEntity.ok(userService.updateByEmail(email, request));
     }
 
-    // 🧩 Đổi mật khẩu
     @PatchMapping("/change-password")
     public ResponseEntity<?> changePassword(Authentication authentication, @RequestBody ChangePasswordRequest req) {
         String email = authentication.getName();
@@ -50,7 +47,6 @@ public class UserController {
         return ResponseEntity.ok("Password changed successfully");
     }
 
-    // 🧩 Cập nhật avatar (single file)
     @PutMapping("/me/avatar")
     public ResponseEntity<?> updateAvatar(
             Authentication authentication,
@@ -61,20 +57,19 @@ public class UserController {
             String email = authentication.getName();
             UserResponse currentUser = userService.getByEmail(email);
 
-            // 1️⃣ Đặt tên file
             String filename = "ID_" + currentUser.getUserId() + "_" + currentUser.getUsername() + ".png";
 
-            // 2️⃣ Tạo thư mục nếu chưa có
+            // Tạo thư mục nếu chưa có
             Path uploadDir = Paths.get("src/main/resources/static/avatars/users/");
             if (!Files.exists(uploadDir)) {
                 Files.createDirectories(uploadDir);
             }
 
-            // 3️⃣ Ghi file (ghi đè nếu có sẵn)
+            // Ghi file (ghi đè nếu có sẵn)
             Path filePath = uploadDir.resolve(filename);
             Files.write(filePath, file.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
-            // 4️⃣ Cập nhật avatar_url trong DB
+            // Cập nhật avatar_url trong DB
             String relativeUrl = "/avatars/users/" + filename;
             userService.updateAvatarUrl(currentUser.getUserId(), relativeUrl);
 
