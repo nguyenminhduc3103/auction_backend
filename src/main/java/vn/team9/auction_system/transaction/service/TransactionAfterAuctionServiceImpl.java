@@ -65,7 +65,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         // 2) Tạo account transaction cho buyer và seller (PENDING)
         AccountTransaction buyerTxn = AccountTransaction.builder()
                 .user(buyer)
-                .amount(amount.negate())   // negative withdraw
+                .amount(amount.negate()) // negative withdraw
                 .type("TRANSFER")
                 .status("PENDING")
                 .build();
@@ -73,7 +73,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
 
         AccountTransaction sellerTxn = AccountTransaction.builder()
                 .user(seller)
-                .amount(amount)            // deposit pending
+                .amount(amount) // deposit pending
                 .type("RECEIVED")
                 .status("PENDING")
                 .build();
@@ -95,7 +95,8 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
                 .orElseThrow(() -> new EntityNotFoundException("Transaction not found"));
 
         String upperStatus = status == null ? null : status.toUpperCase();
-        if (upperStatus == null) throw new IllegalArgumentException("Status is required");
+        if (upperStatus == null)
+            throw new IllegalArgumentException("Status is required");
 
         // Validate transition (ví dụ cơ bản)
         String current = txn.getStatus();
@@ -149,6 +150,17 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     }
 
     // ------------------------------------
+    // Lấy transaction theo seller
+    // ------------------------------------
+    @Override
+    public List<TransactionAfterAuctionResponse> getTransactionsBySeller(Long sellerId) {
+        return transactionRepo.findBySeller_UserId(sellerId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    // ------------------------------------
     // Lấy transaction theo auction
     // ------------------------------------
     @Override
@@ -173,7 +185,8 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         // 2) Update account transactions để từ PENDING -> SUCCESS
         // - buyer: type = WITHDRAW, status = PENDING => SUCCESS
         // - seller: type = DEPOSIT, status = PENDING => SUCCESS
-        List<AccountTransaction> buyerPending = accountRepo.findByUserAndTypeAndStatus(txn.getBuyer(), "TRANSFER", "PENDING");
+        List<AccountTransaction> buyerPending = accountRepo.findByUserAndTypeAndStatus(txn.getBuyer(), "TRANSFER",
+                "PENDING");
         buyerPending.forEach(t -> t.setStatus("SUCCESS"));
         accountRepo.saveAll(buyerPending);
 
@@ -198,7 +211,8 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     }
 
     private TransactionAfterAuctionResponse toResponse(TransactionAfterAuction txn) {
-        if (txn == null) return null;
+        if (txn == null)
+            return null;
         TransactionAfterAuctionResponse res = new TransactionAfterAuctionResponse();
         res.setId(txn.getTransactionId());
         res.setAuctionId(txn.getAuction() != null ? txn.getAuction().getAuctionId() : null);
@@ -207,6 +221,31 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         res.setAmount(txn.getAmount());
         res.setStatus(txn.getStatus());
         res.setUpdatedAt(txn.getUpdatedAt());
+
+        // Product info (from auction → product)
+        if (txn.getAuction() != null && txn.getAuction().getProduct() != null) {
+            var product = txn.getAuction().getProduct();
+            res.setProductId(product.getProductId());
+            res.setProductName(product.getName());
+            // Get thumbnail image
+            if (product.getImages() != null && !product.getImages().isEmpty()) {
+                var thumbnailOpt = product.getImages().stream()
+                        .filter(img -> Boolean.TRUE.equals(img.getIsThumbnail()))
+                        .findFirst();
+                if (thumbnailOpt.isPresent()) {
+                    res.setProductImageUrl(thumbnailOpt.get().getUrl());
+                } else {
+                    res.setProductImageUrl(product.getImages().get(0).getUrl());
+                }
+            }
+        }
+
+        // Buyer info
+        if (txn.getBuyer() != null) {
+            res.setBuyerName(txn.getBuyer().getFullName());
+            res.setBuyerUsername(txn.getBuyer().getUsername());
+        }
+
         return res;
     }
 }

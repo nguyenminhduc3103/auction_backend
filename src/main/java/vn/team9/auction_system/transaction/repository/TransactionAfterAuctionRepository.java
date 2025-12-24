@@ -13,5 +13,8 @@ public interface TransactionAfterAuctionRepository extends JpaRepository<Transac
     // Lấy tất cả giao dịch có buyer hoặc seller cụ thể
     List<TransactionAfterAuction> findByBuyer_UserIdOrSeller_UserId(Long buyerId, Long sellerId);
 
+    // Lấy giao dịch theo seller
+    List<TransactionAfterAuction> findBySeller_UserId(Long sellerId);
+
     List<TransactionAfterAuction> findByStatusAndUpdatedAtBefore(String status, LocalDateTime time);
 }

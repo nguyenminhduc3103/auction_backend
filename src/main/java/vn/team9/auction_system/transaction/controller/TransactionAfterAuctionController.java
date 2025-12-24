@@ -16,7 +16,8 @@ import java.util.List;
 public class TransactionAfterAuctionController {
 
     private final ITransactionAfterAuctionService transactionService;
-    private final TransactionAfterAuctionServiceImpl transactionAfterAuctionService; // để dùng thêm hàm payTransaction()
+    private final TransactionAfterAuctionServiceImpl transactionAfterAuctionService; // để dùng thêm hàm
+                                                                                     // payTransaction()
 
     // ------------------------------------
     // Buyer thanh toán giao dịch
@@ -55,6 +56,15 @@ public class TransactionAfterAuctionController {
     public ResponseEntity<List<TransactionAfterAuctionResponse>> getTransactionsByUser(
             @PathVariable Long userId) {
         return ResponseEntity.ok(transactionService.getTransactionsByUser(userId));
+    }
+
+    // ------------------------------------
+    // Lấy tất cả transaction của seller
+    // ------------------------------------
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<List<TransactionAfterAuctionResponse>> getTransactionsBySeller(
+            @PathVariable Long sellerId) {
+        return ResponseEntity.ok(transactionService.getTransactionsBySeller(sellerId));
     }
 
     // ------------------------------------

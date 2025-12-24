@@ -6,8 +6,12 @@ import java.util.List;
 
 public interface ITransactionAfterAuctionService {
     TransactionAfterAuctionResponse updateTransactionStatus(Long id, String status);
+
     List<TransactionAfterAuctionResponse> getTransactionsByUser(Long userId);
 
+    List<TransactionAfterAuctionResponse> getTransactionsBySeller(Long sellerId);
+
     TransactionAfterAuctionResponse getTransactionByAuction(Long auctionId);
+
     TransactionAfterAuctionResponse cancelTransaction(Long txnId, String reason);
 }
