@@ -69,6 +69,22 @@ public class UserWarningLogImpl implements IUserWarningService {
 
         return response;
     }
+    @Override
+    public List<UserWarningLogResponse> getAllWarnings() {
+        return warningRepo.findAll().stream().map(log -> {
+            UserWarningLogResponse res = new UserWarningLogResponse();
+            res.setLogId(log.getLogId());
+            res.setUserId(log.getUser().getUserId());
+            res.setTransactionId(log.getTransaction().getTransactionId());
+            res.setType(log.getType());
+            res.setStatus(log.getStatus());
+            res.setDescription(log.getDescription());
+            res.setViolationCount(log.getViolationCount());
+            res.setCreatedAt(log.getCreatedAt());
+            return res;
+        }).toList();
+    }   
+
 
     @Override
     public List<UserWarningLogResponse> getWarningsByUser(Long userId) {

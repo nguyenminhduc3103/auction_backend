@@ -15,6 +15,8 @@ public interface AccountTransactionRepository extends JpaRepository<AccountTrans
     // Lấy tất cả transactions của 1 user với status
     List<AccountTransaction> findByUserAndStatus(User user, String status);
 
+    List<AccountTransaction> findByUser_UserId(Long userId);
+
     List<AccountTransaction> findByUser(User user);
 
     // Lấy tất cả transactions của một tập user với status

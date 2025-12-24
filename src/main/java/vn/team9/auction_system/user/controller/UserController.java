@@ -35,11 +35,17 @@ public class UserController {
         return ResponseEntity.ok(userService.getByEmail(email));
     }
 
+    // 🧩 Lấy public profile của user theo ID (từ nhánh seller_profile)
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getPublicProfile(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getPublicProfile(id));
+    }
+
+    // 🧩 Cập nhật thông tin cá nhân (từ main)
     @PutMapping("/me")
     public ResponseEntity<UserResponse> updateCurrentUser(
             Authentication authentication,
-            @Valid @RequestBody UpdateUserDTO request
-    ) {
+            @Valid @RequestBody UpdateUserDTO request) {
         String email = authentication.getName();
         return ResponseEntity.ok(userService.updateByEmail(email, request));
     }
@@ -54,8 +60,7 @@ public class UserController {
     @PutMapping("/me/avatar")
     public ResponseEntity<?> updateAvatar(
             Authentication authentication,
-            @RequestParam("file") MultipartFile file
-    ) {
+            @RequestParam("file") MultipartFile file) {
         try {
             // Lấy user hiện tại qua email
             String email = authentication.getName();

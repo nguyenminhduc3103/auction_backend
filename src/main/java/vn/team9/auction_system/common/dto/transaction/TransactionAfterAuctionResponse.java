@@ -13,4 +13,13 @@ public class TransactionAfterAuctionResponse {
     private BigDecimal amount;
     private String status; // PENDING, PAID, SHIPPED, DONE, CANCELLED
     private LocalDateTime updatedAt;
+
+    // Product info (from auction)
+    private Long productId;
+    private String productName;
+    private String productImageUrl;
+
+    // Buyer info
+    private String buyerName;
+    private String buyerUsername;
 }

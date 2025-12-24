@@ -20,14 +20,21 @@ public class UploadController {
     @PostMapping
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
+            @SuppressWarnings("unchecked")
             Map<String, Object> uploadResult = cloudinary.uploader().upload(
                     file.getBytes(),
                     ObjectUtils.asMap("folder", "auction_images")
-            );
+                );
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("image_url", uploadResult.get("secure_url"));
-            return ResponseEntity.ok(response);
+                String secureUrl = Objects.toString(uploadResult.get("secure_url"), null);
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("image_url", secureUrl);
+                response.put("imageUrl", secureUrl);
+                response.put("secure_url", secureUrl);
+                response.put("secureUrl", secureUrl);
+                response.put("public_id", uploadResult.get("public_id"));
+                return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -42,11 +49,21 @@ public class UploadController {
             List<Map<String, Object>> uploadedImages = new ArrayList<>();
 
             for (MultipartFile file : files) {
+                @SuppressWarnings("unchecked")
                 Map<String, Object> uploadResult = cloudinary.uploader().upload(
                         file.getBytes(),
                         ObjectUtils.asMap("folder", "auction_images")
                 );
-                uploadedImages.add(uploadResult);
+
+                String secureUrl = Objects.toString(uploadResult.get("secure_url"), null);
+
+                Map<String, Object> normalized = new HashMap<>();
+                normalized.put("image_url", secureUrl);
+                normalized.put("imageUrl", secureUrl);
+                normalized.put("secure_url", secureUrl);
+                normalized.put("secureUrl", secureUrl);
+                normalized.put("public_id", uploadResult.get("public_id"));
+                uploadedImages.add(normalized);
             }
 
             return ResponseEntity.ok(uploadedImages);

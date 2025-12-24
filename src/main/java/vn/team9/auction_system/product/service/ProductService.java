@@ -20,6 +20,8 @@ import vn.team9.auction_system.product.mapper.ProductMapper;
 import vn.team9.auction_system.product.model.Image;
 import vn.team9.auction_system.product.model.Product;
 import vn.team9.auction_system.product.repository.ProductRepository;
+import vn.team9.auction_system.auction.model.Auction;
+import vn.team9.auction_system.auction.repository.AuctionRepository;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
 
@@ -27,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -36,14 +39,15 @@ public class ProductService implements IProductService {
 	private final ProductRepository productRepository;
 	private final UserRepository userRepository;
 	private final ProductMapper productMapper;
+	private final AuctionRepository auctionRepository;
 
 	@Override
 	public ProductResponse createProduct(@NonNull ProductCreateRequest request) {
 		Product product = productMapper.toEntity(request);
 		product.setSeller(getCurrentUser());
 
-		// Status is always set to "pending" by system - seller cannot set this
-		product.setStatus("pending");
+		// Status starts as draft until seller requests approval
+		product.setStatus("draft");
 
 		// Seller cannot set deposit and estimatePrice - these will be set by admin
 		// during approval
@@ -151,12 +155,59 @@ public class ProductService implements IProductService {
 		}
 
 		// Update status if provided (typically "approved" or "rejected")
-		if (request.getStatus() != null) {
-			product.setStatus(request.getStatus());
+		String newStatus = request.getStatus();
+		if (newStatus != null) {
+			product.setStatus(newStatus);
+
+			// Khi approve/reject product, cũng update auction liên quan
+			// Tìm auction có trạng thái DRAFT thuộc về product này
+			Optional<Auction> draftAuction = auctionRepository.findAll().stream()
+					.filter(a -> a.getProduct() != null
+							&& a.getProduct().getProductId().equals(id)
+							&& "DRAFT".equalsIgnoreCase(a.getStatus()))
+					.findFirst();
+
+			if (draftAuction.isPresent()) {
+				Auction auction = draftAuction.get();
+				if ("approved".equalsIgnoreCase(newStatus)) {
+					// Approve: DRAFT -> PENDING (chờ lên sàn)
+					auction.setStatus("PENDING");
+				} else if ("rejected".equalsIgnoreCase(newStatus)) {
+					// Reject: DRAFT -> CANCELLED
+					auction.setStatus("CANCELLED");
+				}
+				auctionRepository.save(auction);
+			}
 		}
 
 		Product approved = productRepository.save(Objects.requireNonNull(product));
 		return productMapper.toResponse(approved);
+	}
+
+	@Override
+	public ProductResponse requestApproval(@NonNull Long id) {
+		Product product = productRepository.findByProductIdAndIsDeletedFalse(id)
+				.orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+
+		User current = getCurrentUser();
+		if (product.getSeller() == null || !product.getSeller().getUserId().equals(current.getUserId())) {
+			throw new RuntimeException("Bạn không có quyền gửi phê duyệt sản phẩm này");
+		}
+
+		String currentStatus = product.getStatus() == null ? "" : product.getStatus().toLowerCase();
+		if ("pending".equals(currentStatus)) {
+			return productMapper.toResponse(product);
+		}
+		if (!"draft".equals(currentStatus)) {
+			throw new RuntimeException("Sản phẩm ở trạng thái hiện tại không thể gửi phê duyệt");
+		}
+
+		product.setStatus("pending");
+		product.setDeposit(null);
+		product.setEstimatePrice(null);
+
+		Product submitted = productRepository.save(product);
+		return productMapper.toResponse(submitted);
 	}
 
 	// Removed resolveSeller(Long) as seller is now bound to current token
