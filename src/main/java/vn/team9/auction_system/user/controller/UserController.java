@@ -4,9 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
+import vn.team9.auction_system.auction.service.AuctionServiceImpl;
+import vn.team9.auction_system.common.dto.auction.AuctionResponse;
 import vn.team9.auction_system.common.dto.user.ChangePasswordRequest;
 import vn.team9.auction_system.common.dto.user.UserResponse;
 import vn.team9.auction_system.user.service.UserService;
@@ -24,6 +27,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final AuctionServiceImpl auctionService;
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
@@ -81,4 +85,22 @@ public class UserController {
                     .body(Map.of("message", "Không thể cập nhật avatar"));
         }
     }
+
+    @GetMapping("/{userId}/auctions/participating")
+    public ResponseEntity<?> getParticipatingOpenAuctions(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "endTime,asc") String sort
+    ) {
+        return ResponseEntity.ok(
+                auctionService.getParticipatingOpenAuctions(
+                        userId,
+                        page,
+                        size,
+                        sort
+                )
+        );
+    }
+
 }

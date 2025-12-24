@@ -31,4 +31,11 @@ public interface IAuctionService {
             int size,
             String sort
     );
+
+    public Page<AuctionResponse> getParticipatingOpenAuctions(
+            Long userId,
+            int page,
+            int size,
+            String sort
+    );
 }
