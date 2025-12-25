@@ -39,4 +39,34 @@ public interface AuctionRepository extends JpaRepository<Auction, Long>, JpaSpec
     @Query(value = "SELECT end_time FROM auction WHERE auction_id = :id", nativeQuery = true)
     String checkEnd(@Param("id") Long id);
 
+    // Lấy các auction OPEN mà user đã tham gia bid
+    @Query(
+            value = """
+        SELECT a
+        FROM Auction a
+        WHERE a.status = 'OPEN'
+          AND EXISTS (
+              SELECT 1
+              FROM Bid b
+              WHERE b.auction = a
+                AND b.bidder.userId = :userId
+          )
+        ORDER BY a.endTime ASC
+    """,
+            countQuery = """
+        SELECT COUNT(a.auctionId)
+        FROM Auction a
+        WHERE a.status = 'OPEN'
+          AND EXISTS (
+              SELECT 1
+              FROM Bid b
+              WHERE b.auction = a
+                AND b.bidder.userId = :userId
+          )
+    """
+    )
+    Page<Auction> findParticipatingOpenAuctions(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
 }

@@ -3,9 +3,12 @@ package vn.team9.auction_system.transaction.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.team9.auction_system.auction.model.Auction;
+import vn.team9.auction_system.common.dto.product.WonProductResponse;
 import vn.team9.auction_system.common.dto.transaction.TransactionAfterAuctionResponse;
 import vn.team9.auction_system.common.enums.TransactionStatus;
 import vn.team9.auction_system.common.service.ITransactionAfterAuctionService;
+import vn.team9.auction_system.product.model.Product;
 import vn.team9.auction_system.transaction.mapper.TransactionMapper;
 import vn.team9.auction_system.transaction.model.AccountTransaction;
 import vn.team9.auction_system.transaction.model.TransactionAfterAuction;
@@ -65,7 +68,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         // 2) Tạo account transaction cho buyer và seller (PENDING)
         AccountTransaction buyerTxn = AccountTransaction.builder()
                 .user(buyer)
-                .amount(amount.negate())   // negative withdraw
+                .amount(amount.negate()) // negative withdraw
                 .type("TRANSFER")
                 .status("PENDING")
                 .build();
@@ -73,7 +76,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
 
         AccountTransaction sellerTxn = AccountTransaction.builder()
                 .user(seller)
-                .amount(amount)            // deposit pending
+                .amount(amount) // deposit pending
                 .type("RECEIVED")
                 .status("PENDING")
                 .build();
@@ -95,7 +98,8 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
                 .orElseThrow(() -> new EntityNotFoundException("Transaction not found"));
 
         String upperStatus = status == null ? null : status.toUpperCase();
-        if (upperStatus == null) throw new IllegalArgumentException("Status is required");
+        if (upperStatus == null)
+            throw new IllegalArgumentException("Status is required");
 
         // Validate transition (ví dụ cơ bản)
         String current = txn.getStatus();
@@ -106,8 +110,10 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         txn.setStatus(upperStatus);
         transactionRepo.save(txn);
 
+        // Neus đổi về DONE thì thêm vào accounttranssaction
         if (TransactionStatus.DONE.name().equals(upperStatus)) {
             handleSuccessfulTransaction(txn);
+            // Nếu đổi ve cancel thi xu ly kieu khac
         } else if (TransactionStatus.CANCELLED.name().equals(upperStatus)) {
             handleCancelledTransaction(txn);
         }
@@ -149,6 +155,17 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     }
 
     // ------------------------------------
+    // Lấy transaction theo seller
+    // ------------------------------------
+    @Override
+    public List<TransactionAfterAuctionResponse> getTransactionsBySeller(Long sellerId) {
+        return transactionRepo.findBySeller_UserId(sellerId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    // ------------------------------------
     // Lấy transaction theo auction
     // ------------------------------------
     @Override
@@ -157,6 +174,40 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
                 .orElseThrow(() -> new EntityNotFoundException("No transaction found for this auction"));
         return toResponse(txn);
     }
+
+    @Override
+    public List<WonProductResponse> getWonProducts(Long userId, String status, Long txnId) {
+
+        // =========================
+        // CASE 1: Có txnId → lấy 1 giao dịch duy nhất
+        // =========================
+        if (txnId != null) {
+            TransactionAfterAuction t = transactionRepo
+                    .findByTransactionIdAndBuyerUserId(txnId, userId)
+                    .orElseThrow(() ->
+                            new EntityNotFoundException("Transaction không tồn tại")
+                    );
+
+            return List.of(mapToWonProductResponse(t));
+        }
+
+        // =========================
+        // CASE 2: Lấy danh sách theo status
+        // =========================
+        String filterStatus =
+                (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status))
+                        ? null
+                        : status;
+
+        List<TransactionAfterAuction> transactions =
+                transactionRepo.findWonAuctions(userId, filterStatus);
+
+        return transactions.stream()
+                .map(this::mapToWonProductResponse)
+                .toList();
+    }
+
+
 
     // ------------------------------------
     // Helper methods
@@ -173,7 +224,8 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         // 2) Update account transactions để từ PENDING -> SUCCESS
         // - buyer: type = WITHDRAW, status = PENDING => SUCCESS
         // - seller: type = DEPOSIT, status = PENDING => SUCCESS
-        List<AccountTransaction> buyerPending = accountRepo.findByUserAndTypeAndStatus(txn.getBuyer(), "TRANSFER", "PENDING");
+        List<AccountTransaction> buyerPending = accountRepo.findByUserAndTypeAndStatus(txn.getBuyer(), "TRANSFER",
+                "PENDING");
         buyerPending.forEach(t -> t.setStatus("SUCCESS"));
         accountRepo.saveAll(buyerPending);
 
@@ -198,7 +250,8 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     }
 
     private TransactionAfterAuctionResponse toResponse(TransactionAfterAuction txn) {
-        if (txn == null) return null;
+        if (txn == null)
+            return null;
         TransactionAfterAuctionResponse res = new TransactionAfterAuctionResponse();
         res.setId(txn.getTransactionId());
         res.setAuctionId(txn.getAuction() != null ? txn.getAuction().getAuctionId() : null);
@@ -207,6 +260,58 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         res.setAmount(txn.getAmount());
         res.setStatus(txn.getStatus());
         res.setUpdatedAt(txn.getUpdatedAt());
+
+        // Product info (from auction → product)
+        if (txn.getAuction() != null && txn.getAuction().getProduct() != null) {
+            var product = txn.getAuction().getProduct();
+            res.setProductId(product.getProductId());
+            res.setProductName(product.getName());
+            // Get thumbnail image
+            if (product.getImages() != null && !product.getImages().isEmpty()) {
+                var thumbnailOpt = product.getImages().stream()
+                        .filter(img -> Boolean.TRUE.equals(img.getIsThumbnail()))
+                        .findFirst();
+                if (thumbnailOpt.isPresent()) {
+                    res.setProductImageUrl(thumbnailOpt.get().getUrl());
+                } else {
+                    res.setProductImageUrl(product.getImages().get(0).getUrl());
+                }
+            }
+        }
+
+        // Buyer info
+        if (txn.getBuyer() != null) {
+            res.setBuyerName(txn.getBuyer().getFullName());
+            res.setBuyerUsername(txn.getBuyer().getUsername());
+        }
+
         return res;
     }
+
+    private WonProductResponse mapToWonProductResponse(TransactionAfterAuction t) {
+        Auction a = t.getAuction();
+        Product p = a.getProduct();
+
+        WonProductResponse res = new WonProductResponse();
+        res.setTransactionId(t.getTransactionId());
+        res.setTransactionStatus(t.getStatus());
+        res.setAmount(t.getAmount());
+        res.setUpdatedAt(t.getUpdatedAt());
+
+        res.setAuctionId(a.getAuctionId());
+        res.setAuctionStatus(a.getStatus());
+
+        res.setProductId(p.getProductId());
+        res.setProductName(p.getName());
+        res.setProductImage(p.getImageUrl());
+        res.setProductCategory(p.getCategory());
+        res.setProductDescription(p.getDescription());
+        res.setProductPrice(p.getEstimatePrice());
+
+        res.setSellerId(p.getSeller().getUserId());
+        res.setSellerName(p.getSeller().getFullName());
+
+        return res;
+    }
+
 }

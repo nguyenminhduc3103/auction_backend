@@ -4,11 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import vn.team9.auction_system.common.dto.product.WonProductResponse;
 import vn.team9.auction_system.common.dto.transaction.TransactionAfterAuctionRequest;
 import vn.team9.auction_system.common.dto.transaction.TransactionAfterAuctionResponse;
 import vn.team9.auction_system.common.service.ITransactionAfterAuctionService;
 import vn.team9.auction_system.transaction.service.TransactionAfterAuctionServiceImpl;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -17,7 +19,8 @@ import java.util.List;
 public class TransactionAfterAuctionController {
 
     private final ITransactionAfterAuctionService transactionService;
-    private final TransactionAfterAuctionServiceImpl transactionAfterAuctionService; // để dùng thêm hàm payTransaction()
+    private final TransactionAfterAuctionServiceImpl transactionAfterAuctionService; // để dùng thêm hàm
+                                                                                     // payTransaction()
 
     // ------------------------------------
     // Buyer thanh toán giao dịch
@@ -63,6 +66,15 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
+    // Lấy tất cả transaction của seller
+    // ------------------------------------
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<List<TransactionAfterAuctionResponse>> getTransactionsBySeller(
+            @PathVariable Long sellerId) {
+        return ResponseEntity.ok(transactionService.getTransactionsBySeller(sellerId));
+    }
+
+    // ------------------------------------
     // Lấy transaction theo auction
     // ------------------------------------
     @GetMapping("/auction/{auctionId}")
@@ -70,5 +82,20 @@ public class TransactionAfterAuctionController {
     public ResponseEntity<TransactionAfterAuctionResponse> getTransactionByAuction(
             @PathVariable Long auctionId) {
         return ResponseEntity.ok(transactionService.getTransactionByAuction(auctionId));
+    }
+
+
+    //------------------------------------------
+    // Lấy ra thông tin các sản phẩm đã thắng
+    //------------------------------------------
+    @GetMapping("/{userId}/won-products")
+    public ResponseEntity<List<WonProductResponse>> getWonProducts(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long txnId
+    ) {
+        return ResponseEntity.ok(
+                transactionService.getWonProducts(userId, status, txnId)
+        );
     }
 }

@@ -1,6 +1,8 @@
 package vn.team9.auction_system.transaction.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import vn.team9.auction_system.common.dto.account.AccountTransactionRequest;
@@ -8,7 +10,7 @@ import vn.team9.auction_system.common.dto.account.AccountTransactionResponse;
 import vn.team9.auction_system.transaction.service.AccountTransactionServiceImpl;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("api/account")
@@ -37,8 +39,15 @@ public class AccountTransactionController {
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasAuthority('GET:/api/account/user/{userId}')")
-    public List<AccountTransactionResponse> getByUser(@PathVariable Long userId) {
-        return service.getTransactionsByUser(userId);
+    public Page<AccountTransactionResponse> getByUser(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) {
+        return service.getTransactionsByUser(userId, status, type, from, to, page, size);
     }
 
     @GetMapping("/user/{userId}/withdrawable")
