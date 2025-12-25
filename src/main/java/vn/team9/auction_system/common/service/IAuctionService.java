@@ -43,4 +43,11 @@ public interface IAuctionService {
 
     // Lấy danh sách auctions của một seller cụ thể (public - cho profile)
     List<AuctionResponse> getAuctionsBySellerId(Long sellerId);
+
+    // Lấy danh sách auctions đang OPEN mà user đang tham gia
+    Page<AuctionResponse> getParticipatingOpenAuctions(
+            Long userId,
+            int page,
+            int size,
+            String sort);
 }

@@ -219,6 +219,27 @@ public class AuctionServiceImpl implements IAuctionService {
         return auctions.map(this::mapToResponse);
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public Page<AuctionResponse> getParticipatingOpenAuctions(
+            Long userId,
+            int page,
+            int size,
+            String sort) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        sort.split(",")[1].equalsIgnoreCase("asc")
+                                ? Sort.Direction.ASC
+                                : Sort.Direction.DESC,
+                        sort.split(",")[0]));
+
+        Page<Auction> auctions = auctionRepository.findParticipatingOpenAuctions(userId, pageable);
+
+        return auctions.map(this::mapToResponse);
+    }
+
     // map Entity → DTO
     private AuctionResponse mapToResponse(Auction auction) {
         AuctionResponse res = new AuctionResponse();
