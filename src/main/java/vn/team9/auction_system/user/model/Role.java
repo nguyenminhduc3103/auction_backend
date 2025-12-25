@@ -15,7 +15,8 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "role")
-// Column names are quoted when globally_quoted_identifiers=true, so quote here too
+// Column names are quoted when globally_quoted_identifiers=true, so quote here
+// too
 @SQLRestriction("\"is_deleted\" = false")
 public class Role extends AuditableEntity {
 
@@ -36,10 +37,7 @@ public class Role extends AuditableEntity {
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             // Match existing DB join table name
-            name = "rolePermission",
-            joinColumns = @JoinColumn(name = "role_id"),
-            inverseJoinColumns = @JoinColumn(name = "permission_id")
-    )
+            name = "rolepermission", joinColumns = @JoinColumn(name = "role_id"), inverseJoinColumns = @JoinColumn(name = "permission_id"))
     private Set<Permission> permissions = new HashSet<>();
 
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL)

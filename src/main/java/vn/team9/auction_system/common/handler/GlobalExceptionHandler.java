@@ -2,6 +2,7 @@ package vn.team9.auction_system.common.handler;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -14,6 +15,17 @@ import java.util.Map;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    // Lỗi phân quyền - Access Denied (từ @PreAuthorize)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 403);
+        body.put("error", "Forbidden");
+        body.put("message", "Bạn không có quyền truy cập tài nguyên này");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
 
     // Lỗi API tùy chỉnh
     @ExceptionHandler(ApiException.class)

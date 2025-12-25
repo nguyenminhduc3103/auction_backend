@@ -44,7 +44,6 @@ public class UserController {
         return ResponseEntity.ok(userService.getPublicProfile(id));
     }
 
-    // 🧩 Cập nhật thông tin cá nhân (từ main)
     @PutMapping("/me")
     @PreAuthorize("hasAuthority('PUT:/api/users/me')")
     public ResponseEntity<UserResponse> updateCurrentUser(
@@ -102,16 +101,13 @@ public class UserController {
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
-            @RequestParam(defaultValue = "endTime,asc") String sort
-    ) {
+            @RequestParam(defaultValue = "endTime,asc") String sort) {
         return ResponseEntity.ok(
                 auctionService.getParticipatingOpenAuctions(
                         userId,
                         page,
                         size,
-                        sort
-                )
-        );
+                        sort));
     }
 
 }

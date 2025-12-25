@@ -89,6 +89,7 @@ public class AuctionController {
 
     // Admin duyệt auction (DRAFT -> PENDING hoặc CANCELLED)
     @PutMapping("/{auctionId}/approve")
+    @PreAuthorize("hasAuthority('PUT:/api/auctions/{auctionId}/approve')")
     public ResponseEntity<AuctionResponse> approveAuction(
             @PathVariable Long auctionId,
             @RequestParam String status) {
@@ -97,6 +98,7 @@ public class AuctionController {
 
     // Lấy danh sách auctions của seller hiện tại (từ token)
     @GetMapping("/me")
+    @PreAuthorize("hasAuthority('GET:/api/auctions/me')")
     public ResponseEntity<?> getMyAuctions() {
         return ResponseEntity.ok(auctionService.getAuctionsByCurrentSeller());
     }
