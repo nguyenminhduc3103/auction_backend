@@ -7,16 +7,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import vn.team9.auction_system.common.dto.product.ProductCreateRequest;
-import vn.team9.auction_system.common.dto.product.ProductResponse;
-import vn.team9.auction_system.common.dto.product.ProductUpdateRequest;
-import vn.team9.auction_system.common.dto.product.ProductApprovalRequest;
+import vn.team9.auction_system.common.dto.product.*;
 import vn.team9.auction_system.common.service.IProductService;
 import vn.team9.auction_system.user.repository.UserRepository;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173")
@@ -24,87 +20,99 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ProductController {
 
-	private final IProductService productService;
-	private final UserRepository userRepository;
+    private final IProductService productService;
+    private final UserRepository userRepository;
 
-	// tạo product
-	@PostMapping
-	public ResponseEntity<ProductResponse> createProduct(@RequestBody ProductCreateRequest request) {
-		return ResponseEntity.ok(productService.createProduct(Objects.requireNonNull(request)));
-	}
+    // CRUD
+    @PostMapping
+    public ResponseEntity<ProductResponse> createProduct(
+            @RequestBody ProductCreateRequest request) {
+        return ResponseEntity.ok(productService.createProduct(request));
+    }
 
-	// cập nhật product
-	@PutMapping("/{id}")
-	public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id,
-			@RequestBody ProductUpdateRequest request) {
-		return ResponseEntity.ok(productService.updateProduct(Objects.requireNonNull(id), request));
-	}
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductResponse> updateProduct(
+            @PathVariable Long id,
+            @RequestBody ProductUpdateRequest request) {
+        return ResponseEntity.ok(productService.updateProduct(id, request));
+    }
 
-	// lấy product theo trang(api cho list product trong giao diện của bidder)
-	@GetMapping("/page")
-	public ResponseEntity<Page<ProductResponse>> getProductsPage(
-			@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "10") int size) {
-		return ResponseEntity.ok(productService.getProductsPage(page, size));
-	}
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getProductById(id));
+    }
 
-	// lấy product theo id
-	@GetMapping("/{id}")
-	public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
-		return ResponseEntity.ok(productService.getProductById(Objects.requireNonNull(id)));
-	}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> deleteProduct(@PathVariable Long id) {
+        ProductResponse deleted = productService.deleteProduct(id);
 
-	// xóa product
-	@DeleteMapping("/{id}")
-	public ResponseEntity<Map<String, Object>> deleteProduct(@PathVariable Long id) {
-		ProductResponse deleted = productService.deleteProduct(Objects.requireNonNull(id));
-		Map<String, Object> response = new HashMap<>();
-		response.put("message", "Product has been deleted successfully.");
-		response.put("productId", deleted.getProductId());
-		response.put("deletedAt", deleted.getDeletedAt());
-		return ResponseEntity.ok(response);
-	}
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Product has been deleted successfully");
+        response.put("productId", deleted.getProductId());
+        response.put("deletedAt", deleted.getDeletedAt());
 
-	// lấy product theo seller (lấy seller từ token) có phân trang
-	@GetMapping("/seller/me/page")
-	public ResponseEntity<Page<ProductResponse>> getMyProductsPage(
-			@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "10") int size) {
-		Long sellerId = getCurrentUserId();
-		return ResponseEntity.ok(productService.getProductsBySellerPage(Objects.requireNonNull(sellerId), page, size));
-	}
+        return ResponseEntity.ok(response);
+    }
 
-	// Admin only: Approve product and set deposit + estimatePrice
-	// TODO: Add @PreAuthorize("hasRole('ADMIN')") when RBAC is implemented
-	@PutMapping("/{id}/approve")
-	public ResponseEntity<ProductResponse> approveProduct(
-			@PathVariable Long id,
-			@RequestBody ProductApprovalRequest request) {
-		return ResponseEntity.ok(productService.approveProduct(Objects.requireNonNull(id), request));
-	}
+    // QUERY
+    // Product list for bidder
+    @GetMapping("/page")
+    public ResponseEntity<Page<ProductResponse>> getProductsPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(productService.getProductsPage(page, size));
+    }
 
-	// Seller submits a product for admin approval (draft -> pending)
-	@PostMapping("/{id}/approval-request")
-	public ResponseEntity<ProductResponse> requestApproval(@PathVariable Long id) {
-		return ResponseEntity.ok(productService.requestApproval(Objects.requireNonNull(id)));
-	}
+    // Product list for current seller
+    @GetMapping("/seller/me/page")
+    public ResponseEntity<Page<ProductResponse>> getMyProductsPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-	private Long getCurrentUserId() {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		if (authentication == null || !authentication.isAuthenticated()) {
-			throw new RuntimeException("Vui lòng đăng nhập");
-		}
-		String email;
-		Object principal = authentication.getPrincipal();
-		if (principal instanceof UserDetails userDetails) {
-			email = userDetails.getUsername();
-		} else if (principal instanceof String s) {
-			email = s;
-		} else {
-			throw new RuntimeException("Không thể xác định người dùng hiện tại");
-		}
-		return userRepository.findByEmail(email)
-				.orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với email: " + email))
-				.getUserId();
-	}
+        Long sellerId = getCurrentUserId();
+        return ResponseEntity.ok(
+                productService.getProductsBySellerPage(sellerId, page, size)
+        );
+    }
+
+    // APPROVAL FLOW
+    // Admin approves product
+    // TODO: @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<ProductResponse> approveProduct(
+            @PathVariable Long id,
+            @RequestBody ProductApprovalRequest request) {
+        return ResponseEntity.ok(productService.approveProduct(id, request));
+    }
+
+    // Seller submits product for admin approval
+    @PostMapping("/{id}/approval-request")
+    public ResponseEntity<ProductResponse> requestApproval(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.requestApproval(id));
+    }
+
+    // SECURITY
+    private Long getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Please log in");
+        }
+
+        Object principal = auth.getPrincipal();
+        String email;
+
+        if (principal instanceof UserDetails userDetails) {
+            email = userDetails.getUsername();
+        } else if (principal instanceof String s) {
+            email = s;
+        } else {
+            throw new RuntimeException("Cannot identify current user");
+        }
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found with email: " + email))
+                .getUserId();
+    }
 }

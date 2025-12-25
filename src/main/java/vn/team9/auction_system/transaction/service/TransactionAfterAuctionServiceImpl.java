@@ -33,20 +33,20 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     private final AccountTransactionServiceImpl accountTransactionServiceImpl;
 
     // ------------------------------------
-    // Buyer thanh toán (tiền vào escrow)
+    // Buyer pays (money goes into escrow)
     // ------------------------------------
     @Transactional
     public TransactionAfterAuctionResponse payTransaction(Long txnId, Long buyerId) {
         TransactionAfterAuction txn = transactionRepo.findById(txnId)
                 .orElseThrow(() -> new EntityNotFoundException("Transaction not found"));
 
-        // Chỉ cho payer khi PENDING hoặc SHIPPED
+        // Only allow payment when PENDING or SHIPPED
         if (!(TransactionStatus.PENDING.name().equals(txn.getStatus())
                 || TransactionStatus.SHIPPED.name().equals(txn.getStatus()))) {
             throw new IllegalStateException("Transaction is already processed or invalid");
         }
 
-        // Lock buyer row để tránh race condition
+        // Lock buyer row to avoid race condition
         User buyer = userRepo.findByUserId(buyerId)
                 .orElseThrow(() -> new EntityNotFoundException("Buyer not found"));
         User seller = txn.getSeller();
@@ -61,14 +61,14 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
             throw new IllegalStateException("Insufficient available balance to initiate escrow payment");
         }
 
-        // 1) Trừ tiền buyer 1 lần để hold (escrow)
+        // 1) Deduct buyer's balance once to hold (escrow)
         buyer.setBalance(buyer.getBalance().subtract(amount));
         userRepo.save(buyer);
 
-        // 2) Tạo account transaction cho buyer và seller (PENDING)
+        // 2) Create account transaction for buyer and seller (PENDING)
         AccountTransaction buyerTxn = AccountTransaction.builder()
                 .user(buyer)
-                .amount(amount.negate()) // negative withdraw
+                .amount(amount.negate()) // negative withdrawal
                 .type("TRANSFER")
                 .status("PENDING")
                 .build();
@@ -82,7 +82,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
                 .build();
         accountRepo.save(sellerTxn);
 
-        // 3) Cập nhật trạng thái giao dịch: PAID (đang escrow)
+        // 3) Update transaction status: PAID (in escrow)
         txn.setStatus(TransactionStatus.PAID.name());
         transactionRepo.save(txn);
 
@@ -90,7 +90,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     }
 
     // ------------------------------------
-    // Cập nhật trạng thái (SHIPPED, DONE, CANCELLED,...)
+    // Update status (SHIPPED, DONE, CANCELLED,...)
     // ------------------------------------
     @Override
     public TransactionAfterAuctionResponse updateTransactionStatus(Long txnId, String status) {
@@ -101,7 +101,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         if (upperStatus == null)
             throw new IllegalArgumentException("Status is required");
 
-        // Validate transition (ví dụ cơ bản)
+        // Validate transition (basic example)
         String current = txn.getStatus();
         if (TransactionStatus.DONE.name().equals(current) || TransactionStatus.CANCELLED.name().equals(current)) {
             throw new IllegalStateException("Cannot change status of a finished transaction");
@@ -110,10 +110,10 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         txn.setStatus(upperStatus);
         transactionRepo.save(txn);
 
-        // Neus đổi về DONE thì thêm vào accounttranssaction
+        // If changed to DONE then update account transactions
         if (TransactionStatus.DONE.name().equals(upperStatus)) {
             handleSuccessfulTransaction(txn);
-            // Nếu đổi ve cancel thi xu ly kieu khac
+            // If changed to CANCELLED handle differently
         } else if (TransactionStatus.CANCELLED.name().equals(upperStatus)) {
             handleCancelledTransaction(txn);
         }
@@ -122,7 +122,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     }
 
     // ------------------------------------
-    // Huỷ transaction (PENDING | SHIPPED | PAID)
+    // Cancel transaction (PENDING | SHIPPED | PAID)
     // ------------------------------------
     @Override
     public TransactionAfterAuctionResponse cancelTransaction(Long txnId, String reason) {
@@ -144,7 +144,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     }
 
     // ------------------------------------
-    // Lấy transaction theo user
+    // Get transactions by user
     // ------------------------------------
     @Override
     public List<TransactionAfterAuctionResponse> getTransactionsByUser(Long userId) {
@@ -155,7 +155,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     }
 
     // ------------------------------------
-    // Lấy transaction theo seller
+    // Get transactions by seller
     // ------------------------------------
     @Override
     public List<TransactionAfterAuctionResponse> getTransactionsBySeller(Long sellerId) {
@@ -166,7 +166,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     }
 
     // ------------------------------------
-    // Lấy transaction theo auction
+    // Get transaction by auction
     // ------------------------------------
     @Override
     public TransactionAfterAuctionResponse getTransactionByAuction(Long auctionId) {
@@ -179,20 +179,20 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     public List<WonProductResponse> getWonProducts(Long userId, String status, Long txnId) {
 
         // =========================
-        // CASE 1: Có txnId → lấy 1 giao dịch duy nhất
+        // CASE 1: Has txnId → get single transaction
         // =========================
         if (txnId != null) {
             TransactionAfterAuction t = transactionRepo
                     .findByTransactionIdAndBuyerUserId(txnId, userId)
                     .orElseThrow(() ->
-                            new EntityNotFoundException("Transaction không tồn tại")
+                            new EntityNotFoundException("Transaction does not exist")
                     );
 
             return List.of(mapToWonProductResponse(t));
         }
 
         // =========================
-        // CASE 2: Lấy danh sách theo status
+        // CASE 2: Get list by status
         // =========================
         String filterStatus =
                 (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status))
@@ -207,8 +207,6 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
                 .toList();
     }
 
-
-
     // ------------------------------------
     // Helper methods
     // ------------------------------------
@@ -217,11 +215,11 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         User seller = txn.getSeller();
         BigDecimal amount = txn.getAmount();
 
-        // 1) Cộng tiền cho seller (chỉ cộng 1 lần)
+        // 1) Add money to seller (only once)
         seller.setBalance(seller.getBalance().add(amount));
         userRepo.save(seller);
 
-        // 2) Update account transactions để từ PENDING -> SUCCESS
+        // 2) Update account transactions from PENDING -> SUCCESS
         // - buyer: type = WITHDRAW, status = PENDING => SUCCESS
         // - seller: type = DEPOSIT, status = PENDING => SUCCESS
         List<AccountTransaction> buyerPending = accountRepo.findByUserAndTypeAndStatus(txn.getBuyer(), "TRANSFER",
@@ -239,11 +237,11 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         User seller = txn.getSeller();
         BigDecimal amount = txn.getAmount();
 
-        // 1) Hoàn lại balance cho buyer (vì đã trừ khi payTransaction)
+        // 1) Refund balance to buyer (was deducted during payTransaction)
         buyer.setBalance(buyer.getBalance().add(amount));
         userRepo.save(buyer);
 
-        // 2) Cập nhật account transactions PENDING -> FAILED cho cả buyer & seller
+        // 2) Update account transactions PENDING -> FAILED for both buyer & seller
         List<AccountTransaction> pendings = accountRepo.findByUsersAndStatus(List.of(buyer, seller), "PENDING");
         pendings.forEach(t -> t.setStatus("FAILED"));
         accountRepo.saveAll(pendings);
@@ -274,7 +272,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
                 if (thumbnailOpt.isPresent()) {
                     res.setProductImageUrl(thumbnailOpt.get().getUrl());
                 } else {
-                    res.setProductImageUrl(product.getImages().get(0).getUrl());
+                    res.setProductImageUrl(product.getImages().getFirst().getUrl());
                 }
             }
         }
@@ -313,5 +311,4 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
 
         return res;
     }
-
 }

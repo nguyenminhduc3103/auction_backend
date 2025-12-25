@@ -38,10 +38,7 @@
 
         @PostMapping("/auto-warn")
         public String autoWarnPendingTransactions() {
-            if (warningService instanceof UserWarningLogImpl impl) {
-                impl.warnPendingTransactionsOver36h();
-                return "Auto warnings created successfully";
-            }
-            return "Service implementation not found";
+            warningService.processOverdueTransactions();
+            return "Auto warnings created successfully";
         }
     }

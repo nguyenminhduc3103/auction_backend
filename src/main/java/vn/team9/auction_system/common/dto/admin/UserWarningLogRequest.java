@@ -4,10 +4,10 @@ import lombok.Data;
 
 @Data
 public class UserWarningLogRequest {
-    private Long userId;               // người bị cảnh báo
-    private Long transactionId;        // giao dịch liên quan
+    private Long userId;               // User who received warning
+    private Long transactionId;        // Related transaction
     private String type;               // SHIPPED_NOT_PAID
     private String status;             // VIOLATION
-    private String description;        // FOUND NG BEHAVIOR hoặc ghi chú thêm
-    private Integer violationCount;    // lần vi phạm
+    private String description;        // FOUND SUSPICIOUS BEHAVIOR or additional notes
+    private Integer violationCount;    // Number of violations
 }

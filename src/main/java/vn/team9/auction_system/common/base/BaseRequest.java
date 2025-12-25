@@ -4,8 +4,8 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * Lớp cha cho tất cả Request DTO.
- * Giúp chuẩn hoá các thuộc tính chung khi gửi request từ client lên.
+ * Parent class for all Request DTOs.
+ * Helps standardize common properties when sending requests from client to server.
  */
 @Data
 public abstract class BaseRequest {
