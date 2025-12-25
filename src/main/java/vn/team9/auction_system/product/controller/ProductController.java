@@ -74,6 +74,15 @@ public class ProductController {
 		return ResponseEntity.ok(productService.getProductsBySellerPage(Objects.requireNonNull(sellerId), page, size));
 	}
 
+	// lấy product theo sellerId cụ thể (public - cho profile của seller khác)
+	@GetMapping("/seller/{sellerId}/page")
+	public ResponseEntity<Page<ProductResponse>> getProductsBySellerPage(
+			@PathVariable Long sellerId,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+		return ResponseEntity.ok(productService.getProductsBySellerPage(Objects.requireNonNull(sellerId), page, size));
+	}
+
 	// Admin only: Approve product and set deposit + estimatePrice
 	// TODO: Add @PreAuthorize("hasRole('ADMIN')") when RBAC is implemented
 	@PutMapping("/{id}/approve")

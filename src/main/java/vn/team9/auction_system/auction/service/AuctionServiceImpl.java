@@ -288,6 +288,21 @@ public class AuctionServiceImpl implements IAuctionService {
                 .collect(Collectors.toList());
     }
 
+    // Lấy danh sách auctions của một seller cụ thể (public - cho profile)
+    @Override
+    public List<AuctionResponse> getAuctionsBySellerId(Long sellerId) {
+        List<Auction> allAuctions = auctionRepository.findAll();
+        List<Auction> sellerAuctions = allAuctions.stream()
+                .filter(a -> a.getProduct() != null
+                        && a.getProduct().getSeller() != null
+                        && sellerId.equals(a.getProduct().getSeller().getUserId()))
+                .collect(Collectors.toList());
+
+        return sellerAuctions.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     // Helper: lấy user hiện tại từ SecurityContext
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

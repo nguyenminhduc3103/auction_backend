@@ -40,4 +40,7 @@ public interface IAuctionService {
 
     // Lấy danh sách auctions của seller hiện tại (từ token)
     List<AuctionResponse> getAuctionsByCurrentSeller();
+
+    // Lấy danh sách auctions của một seller cụ thể (public - cho profile)
+    List<AuctionResponse> getAuctionsBySellerId(Long sellerId);
 }
