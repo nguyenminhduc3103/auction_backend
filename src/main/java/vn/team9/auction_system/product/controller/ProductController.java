@@ -13,6 +13,7 @@ import vn.team9.auction_system.user.repository.UserRepository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173")
@@ -20,99 +21,105 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ProductController {
 
-    private final IProductService productService;
-    private final UserRepository userRepository;
+	private final IProductService productService;
+	private final UserRepository userRepository;
 
-    // CRUD
-    @PostMapping
-    public ResponseEntity<ProductResponse> createProduct(
-            @RequestBody ProductCreateRequest request) {
-        return ResponseEntity.ok(productService.createProduct(request));
-    }
+	// CRUD
+	@PostMapping
+	public ResponseEntity<ProductResponse> createProduct(
+			@RequestBody ProductCreateRequest request) {
+		return ResponseEntity.ok(productService.createProduct(request));
+	}
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateProduct(
-            @PathVariable Long id,
-            @RequestBody ProductUpdateRequest request) {
-        return ResponseEntity.ok(productService.updateProduct(id, request));
-    }
+	@PutMapping("/{id}")
+	public ResponseEntity<ProductResponse> updateProduct(
+			@PathVariable Long id,
+			@RequestBody ProductUpdateRequest request) {
+		return ResponseEntity.ok(productService.updateProduct(id, request));
+	}
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.getProductById(id));
-    }
+	@GetMapping("/{id}")
+	public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
+		return ResponseEntity.ok(productService.getProductById(id));
+	}
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> deleteProduct(@PathVariable Long id) {
-        ProductResponse deleted = productService.deleteProduct(id);
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Map<String, Object>> deleteProduct(@PathVariable Long id) {
+		ProductResponse deleted = productService.deleteProduct(id);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Product has been deleted successfully");
-        response.put("productId", deleted.getProductId());
-        response.put("deletedAt", deleted.getDeletedAt());
+		Map<String, Object> response = new HashMap<>();
+		response.put("message", "Product has been deleted successfully");
+		response.put("productId", deleted.getProductId());
+		response.put("deletedAt", deleted.getDeletedAt());
 
-        return ResponseEntity.ok(response);
-    }
+		return ResponseEntity.ok(response);
+	}
 
-    // QUERY
-    // Product list for bidder
-    @GetMapping("/page")
-    public ResponseEntity<Page<ProductResponse>> getProductsPage(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(productService.getProductsPage(page, size));
-    }
+	// QUERY
+	// Product list for bidder (all products)
+	@GetMapping("/page")
+	public ResponseEntity<Page<ProductResponse>> getProductsPage(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+		return ResponseEntity.ok(productService.getProductsPage(page, size));
+	}
 
-    // Product list for current seller
-    @GetMapping("/seller/me/page")
-    public ResponseEntity<Page<ProductResponse>> getMyProductsPage(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+	// Get products by seller ID (public - for seller profile)
+	@GetMapping("/seller/{sellerId}/page")
+	public ResponseEntity<Page<ProductResponse>> getProductsBySellerPage(
+			@PathVariable Long sellerId,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+		return ResponseEntity.ok(productService.getProductsBySellerPage(Objects.requireNonNull(sellerId), page, size));
+	}
 
-        Long sellerId = getCurrentUserId();
-        return ResponseEntity.ok(
-                productService.getProductsBySellerPage(sellerId, page, size)
-        );
-    }
+	// Admin only: Approve product and set deposit + estimatePrice
+	// TODO: Add @PreAuthorize("hasRole('ADMIN')") when RBAC is implemented
+	@PutMapping("/{id}/approve")
+	public ResponseEntity<ProductResponse> approveProduct(
+			@PathVariable Long id,
+			@RequestBody ProductApprovalRequest request) {
+		return ResponseEntity.ok(productService.approveProduct(Objects.requireNonNull(id), request));
+	}
 
-    // APPROVAL FLOW
-    // Admin approves product
-    // TODO: @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{id}/approve")
-    public ResponseEntity<ProductResponse> approveProduct(
-            @PathVariable Long id,
-            @RequestBody ProductApprovalRequest request) {
-        return ResponseEntity.ok(productService.approveProduct(id, request));
-    }
+	// Product list for current seller
+	@GetMapping("/seller/me/page")
+	public ResponseEntity<Page<ProductResponse>> getMyProductsPage(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
 
-    // Seller submits product for admin approval
-    @PostMapping("/{id}/approval-request")
-    public ResponseEntity<ProductResponse> requestApproval(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.requestApproval(id));
-    }
+		Long sellerId = getCurrentUserId();
+		return ResponseEntity.ok(
+				productService.getProductsBySellerPage(sellerId, page, size));
+	}
 
-    // SECURITY
-    private Long getCurrentUserId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+	// Seller submits product for admin approval
+	@PostMapping("/{id}/approval-request")
+	public ResponseEntity<ProductResponse> requestApproval(@PathVariable Long id) {
+		return ResponseEntity.ok(productService.requestApproval(id));
+	}
 
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new RuntimeException("Please log in");
-        }
+	// SECURITY
+	private Long getCurrentUserId() {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        Object principal = auth.getPrincipal();
-        String email;
+		if (auth == null || !auth.isAuthenticated()) {
+			throw new RuntimeException("Please log in");
+		}
 
-        if (principal instanceof UserDetails userDetails) {
-            email = userDetails.getUsername();
-        } else if (principal instanceof String s) {
-            email = s;
-        } else {
-            throw new RuntimeException("Cannot identify current user");
-        }
+		Object principal = auth.getPrincipal();
+		String email;
 
-        return userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("User not found with email: " + email))
-                .getUserId();
-    }
+		if (principal instanceof UserDetails userDetails) {
+			email = userDetails.getUsername();
+		} else if (principal instanceof String s) {
+			email = s;
+		} else {
+			throw new RuntimeException("Cannot identify current user");
+		}
+
+		return userRepository.findByEmail(email)
+				.orElseThrow(() -> new RuntimeException("User not found with email: " + email))
+				.getUserId();
+	}
 }

@@ -40,10 +40,13 @@ public interface IAuctionService {
     // Get auction list of current seller (from token)
     List<AuctionResponse> getAuctionsByCurrentSeller();
 
+    // Get auctions by seller ID (public - for seller profile)
+    List<AuctionResponse> getAuctionsBySellerId(Long sellerId);
+
+    // Get participating open auctions for user
     Page<AuctionResponse> getParticipatingOpenAuctions(
             Long userId,
             int page,
             int size,
-            String sort
-    );
+            String sort);
 }

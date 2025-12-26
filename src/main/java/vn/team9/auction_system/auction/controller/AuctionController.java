@@ -95,4 +95,10 @@ public class AuctionController {
         return ResponseEntity.ok(auctionService.getAuctionsByCurrentSeller());
     }
 
+    // Lấy danh sách auctions của một seller cụ thể (public - cho profile)
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<?> getAuctionsBySellerId(@PathVariable Long sellerId) {
+        return ResponseEntity.ok(auctionService.getAuctionsBySellerId(sellerId));
+    }
+
 }

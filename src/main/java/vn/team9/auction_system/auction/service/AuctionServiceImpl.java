@@ -233,7 +233,7 @@ public void startAuction(Long auctionId) {
                         sort.split(",")[0]));
 
         Specification<Auction> spec = Specification.where(
-                        AuctionSpecification.hasStatus(status))
+                AuctionSpecification.hasStatus(status))
                 .and(AuctionSpecification.excludeStatus("CLOSED"))
                 .and(AuctionSpecification.hasCategory(category))
                 .and(AuctionSpecification.hasKeyword(keyword))
@@ -250,8 +250,7 @@ public void startAuction(Long auctionId) {
             Long userId,
             int page,
             int size,
-            String sort
-    ) {
+            String sort) {
         Pageable pageable = PageRequest.of(
                 page,
                 size,
@@ -259,12 +258,9 @@ public void startAuction(Long auctionId) {
                         sort.split(",")[1].equalsIgnoreCase("asc")
                                 ? Sort.Direction.ASC
                                 : Sort.Direction.DESC,
-                        sort.split(",")[0]
-                )
-        );
+                        sort.split(",")[0]));
 
-        Page<Auction> auctions =
-                auctionRepository.findParticipatingOpenAuctions(userId, pageable);
+        Page<Auction> auctions = auctionRepository.findParticipatingOpenAuctions(userId, pageable);
 
         return auctions.map(this::mapToResponse);
     }
@@ -314,8 +310,10 @@ public void startAuction(Long auctionId) {
             res.setSellerName(seller.getFullName());
         }
 
-        // Total unique bidders
-        res.setTotalBidders(bidRepository.countDistinctBidders(auction.getAuctionId()));
+        // Bid counts
+        Long auctionId = auction.getAuctionId();
+        res.setTotalBidders(bidRepository.countDistinctBidders(auctionId));
+        res.setTotalBids(bidRepository.countByAuction_AuctionId(auctionId));
         return res;
     }
 
@@ -338,7 +336,23 @@ public void startAuction(Long auctionId) {
                 .collect(Collectors.toList());
     }
 
+    // Get auctions by seller ID (public - for seller profile)
+    @Override
+    public List<AuctionResponse> getAuctionsBySellerId(Long sellerId) {
+        List<Auction> allAuctions = auctionRepository.findAll();
+        List<Auction> sellerAuctions = allAuctions.stream()
+                .filter(a -> a.getProduct() != null
+                        && a.getProduct().getSeller() != null
+                        && sellerId.equals(a.getProduct().getSeller().getUserId()))
+                .collect(Collectors.toList());
+
+        return sellerAuctions.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     // Helper: get current user from SecurityContext
+
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
