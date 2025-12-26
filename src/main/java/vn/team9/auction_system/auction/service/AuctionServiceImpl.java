@@ -95,58 +95,86 @@ public class AuctionServiceImpl implements IAuctionService {
     }
 
     // Start auction session (Admin approves)
-    @Override
-    public void startAuction(Long auctionId) {
-        Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
+@Override
+public void startAuction(Long auctionId) {
+    Auction auction = auctionRepository.findById(auctionId)
+            .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
 
-        if (!"PENDING".equals(auction.getStatus()))
-            throw new RuntimeException("Only PENDING auctions can be started");
+    if (!"PENDING".equals(auction.getStatus())) {
+        throw new RuntimeException("Only PENDING auctions can be started");
+    }
 
+    try {
         auction.setStatus("OPEN");
         auction.setStartTime(LocalDateTime.now());
         auctionRepository.save(auction);
+    } catch (Exception e) {
+        throw new RuntimeException("Failed to start auction: " + e.getMessage(), e);
     }
+}
 
     // Close auction session (when time ends)
     @Override
     public void closeAuction(Long auctionId) {
-        Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
+        try {
+            Auction auction = auctionRepository.findById(auctionId)
+                    .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
 
-        if (!"OPEN".equals(auction.getStatus()))
-            throw new RuntimeException("Auction must be OPEN to close");
-
-        auction.setStatus("CLOSED");
-        auction.setEndTime(LocalDateTime.now());
-
-        if (!auction.getBids().isEmpty()) {
-            Bid highestBid = auction.getBids().stream()
-                    .filter(b -> Boolean.TRUE.equals(b.getIsHighest()))
-                    .findFirst()
-                    .orElse(null);
-
-            if (highestBid != null) {
-                User winner = highestBid.getBidder();
-                auction.setWinner(winner);
-
-                // Create TransactionAfterAuction
-                TransactionAfterAuction txn = new TransactionAfterAuction();
-                txn.setAuction(auction);
-                txn.setSeller(auction.getProduct().getSeller());
-                txn.setBuyer(winner);
-                txn.setAmount(highestBid.getBidAmount());
-                txn.setStatus("PENDING"); // or SUCCESS if immediate payment
-                transactionAfterAuctionRepository.save(txn);
-
-                // Option: update seller balance
-                User seller = auction.getProduct().getSeller();
-                seller.setBalance(seller.getBalance().add(highestBid.getBidAmount()));
-                userRepository.save(seller);
+            // Chỉ close auction đang OPEN
+            if (!"OPEN".equalsIgnoreCase(auction.getStatus())) {
+                throw new RuntimeException("Auction must be OPEN to close");
             }
-        }
 
-        auctionRepository.save(auction);
+            auction.setStatus("CLOSED");
+            auction.setEndTime(LocalDateTime.now());
+
+            if (auction.getBids() != null && !auction.getBids().isEmpty()) {
+                // Lấy highest bid
+                Bid highestBid = auction.getBids().stream()
+                        .filter(b -> Boolean.TRUE.equals(b.getIsHighest()))
+                        .findFirst()
+                        .orElse(null);
+
+                if (highestBid != null) {
+                    User winner = highestBid.getBidder();
+                    if (winner == null) {
+                        System.err.println("Auction " + auctionId + ": Highest bid has no bidder!");
+                    } else {
+                        auction.setWinner(winner);
+
+                        // Transaction
+                        try {
+                            User seller = auction.getProduct() != null ? auction.getProduct().getSeller() : null;
+                            if (seller == null) {
+                                System.err.println("Auction " + auctionId + ": Seller is null!");
+                            } else {
+                                TransactionAfterAuction txn = new TransactionAfterAuction();
+                                txn.setAuction(auction);
+                                txn.setBuyer(winner);
+                                txn.setSeller(seller);
+                                txn.setAmount(highestBid.getBidAmount() != null ? highestBid.getBidAmount() : BigDecimal.ZERO);
+                                txn.setStatus("PENDING");
+                                transactionAfterAuctionRepository.save(txn);
+
+                                // Cập nhật balance seller
+                                BigDecimal bidAmount = highestBid.getBidAmount() != null ? highestBid.getBidAmount() : BigDecimal.ZERO;
+                                seller.setBalance(seller.getBalance() != null ? seller.getBalance().add(bidAmount) : bidAmount);
+                                userRepository.save(seller);
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Error creating transaction for auction " + auctionId + ": " + e.getMessage());
+                        }
+                    }
+                }
+            }
+
+            auctionRepository.save(auction);
+            System.out.println("Auction " + auctionId + " closed successfully.");
+        } catch (Exception ex) {
+            System.err.println("Error closing auction " + auctionId + ": " + ex.getMessage());
+            ex.printStackTrace();
+            throw new RuntimeException("Failed to close auction: " + ex.getMessage());
+        }
     }
 
     // Admin approves auction (DRAFT -> PENDING or CANCELLED)
@@ -160,17 +188,14 @@ public class AuctionServiceImpl implements IAuctionService {
         }
 
         String newStatus = status.toUpperCase();
-        if (!"PENDING".equals(newStatus) && !"CANCELLED".equals(newStatus)) {
-            throw new RuntimeException("Invalid status. Must be PENDING or CANCELLED");
-        }
-
-        auction.setStatus(newStatus);
-
-        // If auction approved, change product status to approved
         if ("PENDING".equals(newStatus)) {
+            auction.setStatus("PENDING");
             Product product = auction.getProduct();
             product.setStatus("approved");
             productRepository.save(product);
+        } else {
+            // Thay vì CANCELLED → dùng CLOSED
+            auction.setStatus("CLOSED");
         }
 
         Auction saved = auctionRepository.save(auction);
