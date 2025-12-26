@@ -285,8 +285,10 @@ public class AuctionServiceImpl implements IAuctionService {
             res.setSellerName(seller.getFullName());
         }
 
-        // totalBids
-        res.setTotalBidders(bidRepository.countDistinctBidders(auction.getAuctionId()));
+        // Bid counts
+        Long auctionId = auction.getAuctionId();
+        res.setTotalBidders(bidRepository.countDistinctBidders(auctionId));
+        res.setTotalBids(bidRepository.countByAuction_AuctionId(auctionId));
         return res;
     }
 
