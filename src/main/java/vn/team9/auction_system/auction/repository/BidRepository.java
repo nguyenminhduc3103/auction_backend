@@ -22,4 +22,7 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
                 WHERE auction_id = :auctionId
             """, nativeQuery = true)
     Long countDistinctBidders(Long auctionId);
+
+    List<Bid> findByAuction_AuctionIdAndIsAutoTrue(Long auctionId);
+    Optional<Bid> findTopByAuction_AuctionIdAndBidder_UserIdAndIsAutoTrueOrderByCreatedAtDesc(Long auctionId, Long userId);
 }

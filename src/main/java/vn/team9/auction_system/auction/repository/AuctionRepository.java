@@ -26,7 +26,7 @@ public interface AuctionRepository extends JpaRepository<Auction, Long>, JpaSpec
     })
     Page<Auction> findAll(Specification<Auction> spec, Pageable pageable);
 
-    // Lấy thông tin chi tiết của 1 auction theo id
+    // Get detailed auction information by ID
     @Query("""
     SELECT a FROM Auction a
     JOIN FETCH a.product p
@@ -39,7 +39,7 @@ public interface AuctionRepository extends JpaRepository<Auction, Long>, JpaSpec
     @Query(value = "SELECT end_time FROM auction WHERE auction_id = :id", nativeQuery = true)
     String checkEnd(@Param("id") Long id);
 
-    // Lấy các auction OPEN mà user đã tham gia bid
+    // Get OPEN auctions that user has participated in with bids
     @Query(
             value = """
         SELECT a

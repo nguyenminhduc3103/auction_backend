@@ -43,28 +43,28 @@ public class AuctionServiceImpl implements IAuctionService {
     private final TransactionAfterAuctionRepository transactionAfterAuctionRepository;
     private final BidRepository bidRepository;
 
-    // Tạo phiên đấu giá mới (seller request)
+    // Create new auction session (seller request)
     @Override
     public AuctionResponse createAuction(AuctionRequest request) {
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + request.getProductId()));
 
-        // Kiểm tra product status phải là draft hoặc rejected
+        // Check product status must be draft or rejected
         String productStatus = product.getStatus() != null ? product.getStatus().toLowerCase() : "";
         if (!productStatus.equals("draft") && !productStatus.equals("rejected")) {
             throw new RuntimeException(
-                    "Chỉ sản phẩm ở trạng thái 'draft' hoặc 'rejected' mới có thể tạo yêu cầu đấu giá.");
+                    "Only products in 'draft' or 'rejected' status can create auction requests.");
         }
 
         Auction auction = new Auction();
         auction.setProduct(product);
         auction.setStartTime(request.getStartTime());
         auction.setEndTime(request.getEndTime());
-        auction.setStatus("DRAFT"); // Chờ admin duyệt
+        auction.setStatus("DRAFT"); // Waiting for admin approval
         auction.setHighestCurrentPrice(BigDecimal.ZERO);
-        auction.setBidStepAmount(BigDecimal.valueOf(10000));// default step amount
+        auction.setBidStepAmount(BigDecimal.valueOf(10000)); // Default step amount
 
-        // Đổi product status sang PENDING (chờ admin duyệt)
+        // Change product status to PENDING (waiting for admin approval)
         product.setStatus("pending");
         productRepository.save(product);
 
@@ -72,7 +72,7 @@ public class AuctionServiceImpl implements IAuctionService {
         return mapToResponse(saved);
     }
 
-    // Cập nhật thông tin phiên đấu giá
+    // Update auction session information
     @Override
     public AuctionResponse updateAuction(Long id, AuctionRequest request) {
         Auction auction = auctionRepository.findById(id)
@@ -86,7 +86,7 @@ public class AuctionServiceImpl implements IAuctionService {
         return mapToResponse(updated);
     }
 
-    // Xoá phiên đấu giá
+    // Delete auction session
     @Override
     public void deleteAuction(Long id) {
         Auction auction = auctionRepository.findById(id)
@@ -94,7 +94,7 @@ public class AuctionServiceImpl implements IAuctionService {
         auctionRepository.delete(auction);
     }
 
-    // Bắt đầu phiên đấu giá (Admin duyệt)
+    // Start auction session (Admin approves)
     @Override
     public void startAuction(Long auctionId) {
         Auction auction = auctionRepository.findById(auctionId)
@@ -108,7 +108,7 @@ public class AuctionServiceImpl implements IAuctionService {
         auctionRepository.save(auction);
     }
 
-    // Đóng phiên đấu giá (khi hết thời gian)
+    // Close auction session (when time ends)
     @Override
     public void closeAuction(Long auctionId) {
         Auction auction = auctionRepository.findById(auctionId)
@@ -130,16 +130,16 @@ public class AuctionServiceImpl implements IAuctionService {
                 User winner = highestBid.getBidder();
                 auction.setWinner(winner);
 
-                // Tạo TransactionAfterAuction
+                // Create TransactionAfterAuction
                 TransactionAfterAuction txn = new TransactionAfterAuction();
                 txn.setAuction(auction);
                 txn.setSeller(auction.getProduct().getSeller());
                 txn.setBuyer(winner);
                 txn.setAmount(highestBid.getBidAmount());
-                txn.setStatus("PENDING"); // hoặc SUCCESS nếu thanh toán luôn
+                txn.setStatus("PENDING"); // or SUCCESS if immediate payment
                 transactionAfterAuctionRepository.save(txn);
 
-                // Option: cập nhật balance
+                // Option: update seller balance
                 User seller = auction.getProduct().getSeller();
                 seller.setBalance(seller.getBalance().add(highestBid.getBidAmount()));
                 userRepository.save(seller);
@@ -149,7 +149,7 @@ public class AuctionServiceImpl implements IAuctionService {
         auctionRepository.save(auction);
     }
 
-    // Admin duyệt auction (DRAFT -> PENDING hoặc CANCELLED)
+    // Admin approves auction (DRAFT -> PENDING or CANCELLED)
     @Override
     public AuctionResponse approveAuction(Long auctionId, String status) {
         Auction auction = auctionRepository.findById(auctionId)
@@ -166,7 +166,7 @@ public class AuctionServiceImpl implements IAuctionService {
 
         auction.setStatus(newStatus);
 
-        // Nếu approve auction thì đổi product status sang approved
+        // If auction approved, change product status to approved
         if ("PENDING".equals(newStatus)) {
             Product product = auction.getProduct();
             product.setStatus("approved");
@@ -177,7 +177,7 @@ public class AuctionServiceImpl implements IAuctionService {
         return mapToResponse(saved);
     }
 
-    // Lấy thông tin phiên đấu giá theo ID
+    // Get auction information by ID
     @Override
     @Transactional(readOnly = true)
     public AuctionResponse getAuctionById(Long id) {
@@ -240,7 +240,7 @@ public class AuctionServiceImpl implements IAuctionService {
         return auctions.map(this::mapToResponse);
     }
 
-    // map Entity → DTO
+    // Map Entity → DTO
     private AuctionResponse mapToResponse(Auction auction) {
         AuctionResponse res = new AuctionResponse();
 
@@ -263,13 +263,13 @@ public class AuctionServiceImpl implements IAuctionService {
 
         // Images
         if (product.getImages() != null && !product.getImages().isEmpty()) {
-            // list
+            // List of all images
             List<String> urls = product.getImages().stream()
                     .map(Image::getUrl)
                     .collect(Collectors.toList());
             res.setProductImageUrls(urls);
 
-            // thumbnail
+            // Thumbnail (primary image)
             res.setProductImageUrl(
                     product.getImages().stream()
                             .filter(img -> Boolean.TRUE.equals(img.getIsThumbnail()))
@@ -292,26 +292,26 @@ public class AuctionServiceImpl implements IAuctionService {
         return res;
     }
 
-    // Lấy danh sách auctions của seller hiện tại (từ token)
+    // Get auction list of current seller (from token)
     @Override
     public List<AuctionResponse> getAuctionsByCurrentSeller() {
         User currentUser = getCurrentUser();
         Long sellerId = currentUser.getUserId();
 
-        // Tìm tất cả auctions mà product thuộc về seller này
+        // Find all auctions where product belongs to this seller
         List<Auction> allAuctions = auctionRepository.findAll();
         List<Auction> sellerAuctions = allAuctions.stream()
                 .filter(a -> a.getProduct() != null
                         && a.getProduct().getSeller() != null
                         && sellerId.equals(a.getProduct().getSeller().getUserId()))
-                .collect(Collectors.toList());
+                .toList();
 
         return sellerAuctions.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    // Lấy danh sách auctions của một seller cụ thể (public - cho profile)
+    // Get auctions by seller ID (public - for seller profile)
     @Override
     public List<AuctionResponse> getAuctionsBySellerId(Long sellerId) {
         List<Auction> allAuctions = auctionRepository.findAll();
@@ -326,11 +326,12 @@ public class AuctionServiceImpl implements IAuctionService {
                 .collect(Collectors.toList());
     }
 
-    // Helper: lấy user hiện tại từ SecurityContext
+    // Helper: get current user from SecurityContext
+
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("Vui lòng đăng nhập");
+            throw new RuntimeException("Please log in");
         }
 
         String email;
@@ -340,10 +341,10 @@ public class AuctionServiceImpl implements IAuctionService {
         } else if (principal instanceof String s) {
             email = s;
         } else {
-            throw new RuntimeException("Không thể xác định người dùng hiện tại");
+            throw new RuntimeException("Cannot identify current user");
         }
 
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với email: " + email));
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 }

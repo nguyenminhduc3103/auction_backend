@@ -19,7 +19,7 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long EXPIRATION_TIME;
 
-    // Sinh token
+    // Generate token
     public String generateToken(String subject) {
         return generateToken(Map.of(), subject);
     }
@@ -31,13 +31,13 @@ public class JwtService {
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(subject)
-                .setIssuedAt(now)            // thời điểm phát hành
-                .setExpiration(expiry)       // thời điểm hết hạn
+                .setIssuedAt(now)            // Issue time
+                .setExpiration(expiry)       // Expiration time
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // Xác minh token
+    // Verify token
     public boolean isTokenValid(String token, String expectedEmail) {
         final String actualEmail = extractClaim(token, Claims::getSubject);
         return (actualEmail.equals(expectedEmail)) && !isTokenExpired(token);
@@ -47,7 +47,7 @@ public class JwtService {
         return extractExpiration(token).before(new Date());
     }
 
-    // Giải mã claims
+    // Decode claims
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -69,13 +69,13 @@ public class JwtService {
                     .parseClaimsJws(token)
                     .getBody();
         } catch (ExpiredJwtException e) {
-            throw new RuntimeException("Token đã hết hạn!");
+            throw new RuntimeException("Token has expired!");
         } catch (JwtException e) {
-            throw new RuntimeException("Token không hợp lệ!");
+            throw new RuntimeException("Token is invalid!");
         }
     }
 
-    // Khóa ký JWT
+    // JWT signing key
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes);

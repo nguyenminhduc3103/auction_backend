@@ -12,15 +12,15 @@ import java.util.Optional;
 public interface TransactionAfterAuctionRepository extends JpaRepository<TransactionAfterAuction, Long> {
     Optional<TransactionAfterAuction> findByAuction_AuctionId(Long auctionId);
 
-    // Lấy tất cả giao dịch có buyer hoặc seller cụ thể
+    // Get all transactions with specific buyer or seller
     List<TransactionAfterAuction> findByBuyer_UserIdOrSeller_UserId(Long buyerId, Long sellerId);
 
-    // Lấy giao dịch theo seller
+    // Get transactions by seller
     List<TransactionAfterAuction> findBySeller_UserId(Long sellerId);
 
     List<TransactionAfterAuction> findByStatusAndUpdatedAtBefore(String status, LocalDateTime time);
 
-    // Lấy ra các sản phẩm đã thắng của người dùng theo status
+    // Get won products of user by status
     @Query("""
         SELECT t
         FROM TransactionAfterAuction t

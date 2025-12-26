@@ -4,12 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.team9.auction_system.common.dto.product.WonProductResponse;
-import vn.team9.auction_system.common.dto.transaction.TransactionAfterAuctionRequest;
 import vn.team9.auction_system.common.dto.transaction.TransactionAfterAuctionResponse;
 import vn.team9.auction_system.common.service.ITransactionAfterAuctionService;
 import vn.team9.auction_system.transaction.service.TransactionAfterAuctionServiceImpl;
 
-import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -18,11 +16,10 @@ import java.util.List;
 public class TransactionAfterAuctionController {
 
     private final ITransactionAfterAuctionService transactionService;
-    private final TransactionAfterAuctionServiceImpl transactionAfterAuctionService; // để dùng thêm hàm
-                                                                                     // payTransaction()
+    private final TransactionAfterAuctionServiceImpl transactionAfterAuctionService; // for additional payTransaction() method
 
     // ------------------------------------
-    // Buyer thanh toán giao dịch
+    // Buyer pays for transaction
     // ------------------------------------
     @PostMapping("/{txnId}/pay")
     public ResponseEntity<TransactionAfterAuctionResponse> payTransaction(
@@ -32,7 +29,7 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
-    // Cập nhật trạng thái giao dịch (ví dụ: SHIPPED, DONE)
+    // Update transaction status (e.g. SHIPPED, DONE)
     // ------------------------------------
     @PutMapping("/{txnId}/status")
     public ResponseEntity<TransactionAfterAuctionResponse> updateStatus(
@@ -42,7 +39,7 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
-    // Huỷ transaction (chỉ khi PENDING)
+    // Cancel transaction (only when PENDING)
     // ------------------------------------
     @PutMapping("/{txnId}/cancel")
     public ResponseEntity<TransactionAfterAuctionResponse> cancelTransaction(
@@ -52,7 +49,7 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
-    // Lấy tất cả transaction của user
+    // Get all transactions of a user
     // ------------------------------------
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<TransactionAfterAuctionResponse>> getTransactionsByUser(
@@ -61,7 +58,7 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
-    // Lấy tất cả transaction của seller
+    // Get all transactions of a seller
     // ------------------------------------
     @GetMapping("/seller/{sellerId}")
     public ResponseEntity<List<TransactionAfterAuctionResponse>> getTransactionsBySeller(
@@ -70,7 +67,7 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
-    // Lấy transaction theo auction
+    // Get transaction by auction
     // ------------------------------------
     @GetMapping("/auction/{auctionId}")
     public ResponseEntity<TransactionAfterAuctionResponse> getTransactionByAuction(
@@ -78,10 +75,9 @@ public class TransactionAfterAuctionController {
         return ResponseEntity.ok(transactionService.getTransactionByAuction(auctionId));
     }
 
-
-    //------------------------------------------
-    // Lấy ra thông tin các sản phẩm đã thắng
-    //------------------------------------------
+    // ------------------------------------
+    // Get information of won products
+    // ------------------------------------
     @GetMapping("/{userId}/won-products")
     public ResponseEntity<List<WonProductResponse>> getWonProducts(
             @PathVariable Long userId,

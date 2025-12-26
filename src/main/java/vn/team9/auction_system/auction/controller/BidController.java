@@ -1,6 +1,7 @@
 package vn.team9.auction_system.auction.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.team9.auction_system.auction.service.IAutoBidService;
@@ -14,39 +15,54 @@ import java.util.List;
 @CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/bids")
 @RequiredArgsConstructor
+@Slf4j
 public class BidController {
 
     private final IBidService bidService;
     private final IAutoBidService autoBidService;
 
-    // Đặt giá thầu thủ công
+    // Place a manual bid
     @PostMapping
     public ResponseEntity<BidResponse> placeBid(@RequestBody BidRequest request) {
-        return ResponseEntity.ok(bidService.placeBid(request));
+        log.warn("BidController.placeBid() called");
+        BidResponse response = bidService.placeBid(request);
+        log.warn("Response success: {}, message: {}",
+                response.getSuccess(), response.getMessage());
+        return ResponseEntity.ok(response);
     }
 
-    // Đặt giá thầu tự động
+    // Place an automatic bid
     @PostMapping("/auto")
     public ResponseEntity<BidResponse> placeAutoBid(@RequestBody BidRequest request) {
-        return ResponseEntity.ok(autoBidService.placeAutoBid(request));
+        log.warn("BidController.placeAutoBid() called");
+        BidResponse response = autoBidService.placeAutoBid(request);
+        log.warn("AutoBid response success: {}, message: {}",
+                response.getSuccess(), response.getMessage());
+        return ResponseEntity.ok(response);
     }
 
-    // Lấy danh sách bid theo phiên đấu giá
+    // Get bid list by auction session
     @GetMapping("/auction/{auctionId}")
     public ResponseEntity<List<BidResponse>> getBidsByAuction(@PathVariable Long auctionId) {
-        return ResponseEntity.ok(bidService.getBidsByAuction(auctionId));
+        List<BidResponse> responses = bidService.getBidsByAuction(auctionId);
+        log.warn("Got {} bids for auction {}", responses.size(), auctionId);
+        return ResponseEntity.ok(responses);
     }
 
-    // Lấy giá cao nhất trong phiên đấu giá đó
+    // Get the highest bid in the auction session
     @GetMapping("/auction/{auctionId}/highest")
     public ResponseEntity<BidResponse> getHighestBid(@PathVariable Long auctionId) {
-        return ResponseEntity.ok(bidService.getHighestBid(auctionId));
+        BidResponse response = bidService.getHighestBid(auctionId);
+        log.warn("Highest bid response success: {}, bidAmount: {}",
+                response.getSuccess(), response.getBidAmount());
+        return ResponseEntity.ok(response);
     }
 
-    // Lấy danh sách bid của 1 user
+    // Get bid list of a user
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<BidResponse>> getBidsByUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(bidService.getBidsByUser(userId));
+        List<BidResponse> responses = bidService.getBidsByUser(userId);
+        log.warn("Got {} bids for user {}", responses.size(), userId);
+        return ResponseEntity.ok(responses);
     }
 }
-

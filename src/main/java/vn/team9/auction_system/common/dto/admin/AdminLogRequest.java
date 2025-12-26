@@ -5,13 +5,13 @@ import java.time.LocalDateTime;
 
 @Data
 public class AdminLogRequest {
-    private Long id;              // 🆕 ID log (dùng cho update/delete)
-    private Long adminId;         // ID của admin thực hiện hành động
+    private Long id;              // Log ID (used for update/delete)
+    private Long adminId;         // ID of admin performing the action
     private String action;        // e.g. APPROVE_PRODUCT, BAN_USER, REFUND
-    private String target;        // Đối tượng bị tác động (product, user, feedback...)
-    private String description;   // Mô tả chi tiết hành động
+    private String target;        // Target object affected (product, user, feedback...)
+    private String description;   // Detailed description of the action
 
-    // 🕓 Các trường CRUD mở rộng
-    private LocalDateTime createdAt; // Thời gian tạo log
-    private LocalDateTime updatedAt; // Thời gian cập nhật log
+    // Extended CRUD fields
+    private LocalDateTime createdAt; // Log creation time
+    private LocalDateTime updatedAt; // Log update time
 }

@@ -5,7 +5,6 @@ import lombok.EqualsAndHashCode;
 import vn.team9.auction_system.common.base.BaseResponse;
 
 import java.math.BigDecimal;
-import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.List;
 

@@ -11,7 +11,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/upload")
-@CrossOrigin(origins = "http://localhost:5173") // cho phép frontend truy cập
+@CrossOrigin(origins = "http://localhost:5173")
 @RequiredArgsConstructor
 public class UploadController {
 
@@ -20,26 +20,11 @@ public class UploadController {
     @PostMapping
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> uploadResult = cloudinary.uploader().upload(
-                    file.getBytes(),
-                    ObjectUtils.asMap("folder", "auction_images")
-                );
-
-                String secureUrl = Objects.toString(uploadResult.get("secure_url"), null);
-
-                Map<String, Object> response = new HashMap<>();
-                response.put("image_url", secureUrl);
-                response.put("imageUrl", secureUrl);
-                response.put("secure_url", secureUrl);
-                response.put("secureUrl", secureUrl);
-                response.put("public_id", uploadResult.get("public_id"));
-                return ResponseEntity.ok(response);
-
+            return ResponseEntity.ok(uploadSingleFile(file));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError()
-                    .body("Upload thất bại: " + e.getMessage());
+                    .body("Upload failed: " + e.getMessage());
         }
     }
 
@@ -49,29 +34,34 @@ public class UploadController {
             List<Map<String, Object>> uploadedImages = new ArrayList<>();
 
             for (MultipartFile file : files) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> uploadResult = cloudinary.uploader().upload(
-                        file.getBytes(),
-                        ObjectUtils.asMap("folder", "auction_images")
-                );
-
-                String secureUrl = Objects.toString(uploadResult.get("secure_url"), null);
-
-                Map<String, Object> normalized = new HashMap<>();
-                normalized.put("image_url", secureUrl);
-                normalized.put("imageUrl", secureUrl);
-                normalized.put("secure_url", secureUrl);
-                normalized.put("secureUrl", secureUrl);
-                normalized.put("public_id", uploadResult.get("public_id"));
-                uploadedImages.add(normalized);
+                uploadedImages.add(uploadSingleFile(file));
             }
 
             return ResponseEntity.ok(uploadedImages);
 
-        } catch (Exception e) {  // Bắt tất cả các loại lỗi
-            e.printStackTrace(); // In đầy đủ stack trace ra console
+        } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError()
-                    .body("Upload thất bại: " + e.getMessage());
+                    .body("Upload failed: " + e.getMessage());
         }
+    }
+
+    private Map<String, Object> uploadSingleFile(MultipartFile file) throws Exception {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> uploadResult = cloudinary.uploader().upload(
+                file.getBytes(),
+                ObjectUtils.asMap("folder", "auction_images")
+        );
+
+        String secureUrl = Objects.toString(uploadResult.get("secure_url"), null);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("image_url", secureUrl);
+        response.put("imageUrl", secureUrl);
+        response.put("secure_url", secureUrl);
+        response.put("secureUrl", secureUrl);
+        response.put("public_id", uploadResult.get("public_id"));
+
+        return response;
     }
 }

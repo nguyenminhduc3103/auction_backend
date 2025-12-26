@@ -20,7 +20,6 @@ import vn.team9.auction_system.product.mapper.ProductMapper;
 import vn.team9.auction_system.product.model.Image;
 import vn.team9.auction_system.product.model.Product;
 import vn.team9.auction_system.product.repository.ProductRepository;
-import vn.team9.auction_system.auction.model.Auction;
 import vn.team9.auction_system.auction.repository.AuctionRepository;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
@@ -28,257 +27,245 @@ import vn.team9.auction_system.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class ProductService implements IProductService {
 
-	private final ProductRepository productRepository;
-	private final UserRepository userRepository;
-	private final ProductMapper productMapper;
-	private final AuctionRepository auctionRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
+    private final ProductMapper productMapper;
+    private final AuctionRepository auctionRepository;
 
-	@Override
-	public ProductResponse createProduct(@NonNull ProductCreateRequest request) {
-		Product product = productMapper.toEntity(request);
-		product.setSeller(getCurrentUser());
+    // =========================
+    // CREATE
+    // =========================
 
-		// Status starts as draft until seller requests approval
-		product.setStatus("draft");
+    @Override
+    public ProductResponse createProduct(@NonNull ProductCreateRequest request) {
+        Product product = productMapper.toEntity(request);
+        product.setSeller(getCurrentUser());
+        product.setStatus("draft");
+        product.setDeposit(null);
+        product.setEstimatePrice(null);
+        product.setCreatedAt(
+                product.getCreatedAt() != null ? product.getCreatedAt() : LocalDateTime.now()
+        );
 
-		// Seller cannot set deposit and estimatePrice - these will be set by admin
-		// during approval
-		product.setDeposit(null);
-		product.setEstimatePrice(null);
+        applyImages(product, request.getImages());
 
-		if (product.getCreatedAt() == null) {
-			product.setCreatedAt(LocalDateTime.now());
-		}
+        return saveAndMap(product);
+    }
 
-		// Chuẩn bị lại danh sách ảnh (vd: upload cloud, cập nhật URL) trước khi gán cho
-		// product
-		List<ImageRequest> processedImages = handleImageUploads(request.getImages());
-		replaceImages(product, processedImages);
-		syncPrimaryImage(product);
+    // =========================
+    // UPDATE
+    // =========================
 
-		Product saved = productRepository.save(Objects.requireNonNull(product));
-		return productMapper.toResponse(saved);
-	}
+    @Override
+    public ProductResponse updateProduct(@NonNull Long id, ProductUpdateRequest request) {
+        Product product = getProductOrThrow(id);
+        assertSellerOwnership(product);
 
-	@Override
-	public ProductResponse updateProduct(@NonNull Long id, ProductUpdateRequest request) {
-		Product product = productRepository.findByProductIdAndIsDeletedFalse(id)
-				.orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        productMapper.updateEntity(product, request);
 
-		// Enforce ownership: only the seller (current user) can update
-		User current = getCurrentUser();
-		if (product.getSeller() == null || !product.getSeller().getUserId().equals(current.getUserId())) {
-			throw new RuntimeException("Bạn không có quyền sửa sản phẩm này");
-		}
+        if (request.getImages() != null) {
+            applyImages(product, request.getImages());
+        }
 
-		// Update allowed fields via mapper (deposit and estimatePrice are excluded from
-		// ProductUpdateRequest)
-		productMapper.updateEntity(product, request);
+        return saveAndMap(product);
+    }
 
-		// Ignore any attempt to change seller via request; seller is bound to token
-		// Status cannot be changed by seller - only admin via approval endpoint
+    // =========================
+    // QUERY
+    // =========================
 
-		if (request.getImages() != null) {
-			List<ImageRequest> processedImages = handleImageUploads(request.getImages());
-			replaceImages(product, processedImages);
-			syncPrimaryImage(product);
-		}
+    @Override
+    @Transactional(readOnly = true)
+    public ProductResponse getProductById(@NonNull Long id) {
+        return productMapper.toResponse(getProductOrThrow(id));
+    }
 
-		Product updated = productRepository.save(Objects.requireNonNull(product));
-		return productMapper.toResponse(updated);
-	}
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getProductsPage(int page, int size) {
+        Pageable pageable = buildPageable(page, size);
+        return productRepository.findAllByIsDeletedFalse(pageable)
+                .map(productMapper::toResponse);
+    }
 
-	@Override
-	@Transactional(readOnly = true)
-	public ProductResponse getProductById(@NonNull Long id) {
-		Product product = productRepository.findByProductIdAndIsDeletedFalse(id)
-				.orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
-		return productMapper.toResponse(product);
-	}
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getProductsBySellerPage(
+            @NonNull Long sellerId, int page, int size) {
+        Pageable pageable = buildPageable(page, size);
+        return productRepository.findBySeller_UserIdAndIsDeletedFalse(sellerId, pageable)
+                .map(productMapper::toResponse);
+    }
 
-	// Removed non-paginated getAllProducts()
+    // =========================
+    // DELETE (SOFT)
+    // =========================
 
-	@Override
-	@Transactional(readOnly = true)
-	public Page<ProductResponse> getProductsPage(int page, int size) {
-		int pageIndex = Math.max(page, 0);
-		int pageSize = size > 0 ? size : 10;
-		Pageable pageable = PageRequest.of(pageIndex, pageSize);
-		return productRepository.findAllByIsDeletedFalse(pageable)
-				.map(productMapper::toResponse);
-	}
+    @Override
+    public ProductResponse deleteProduct(@NonNull Long id) {
+        Product product = getProductOrThrow(id);
+        product.setIsDeleted(true);
+        product.setDeletedAt(LocalDateTime.now());
+        return saveAndMap(product);
+    }
 
-	@Override
-	public ProductResponse deleteProduct(@NonNull Long id) {
-		Product product = productRepository.findByProductIdAndIsDeletedFalse(id)
-				.orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
-		product.setIsDeleted(true);
-		product.setDeletedAt(LocalDateTime.now());
-		Product deleted = productRepository.save(product);
-		return productMapper.toResponse(deleted);
-	}
+    // =========================
+    // APPROVAL FLOW
+    // =========================
 
-	// Removed non-paginated getProductsBySeller()
+    @Override
+    public ProductResponse requestApproval(@NonNull Long id) {
+        Product product = getProductOrThrow(id);
+        assertSellerOwnership(product);
 
-	@Override
-	@Transactional(readOnly = true)
-	public Page<ProductResponse> getProductsBySellerPage(@NonNull Long sellerId, int page, int size) {
-		int pageIndex = Math.max(page, 0);
-		int pageSize = size > 0 ? size : 10;
-		Pageable pageable = PageRequest.of(pageIndex, pageSize);
-		return productRepository.findBySeller_UserIdAndIsDeletedFalse(sellerId, pageable)
-				.map(productMapper::toResponse);
-	}
+        String status = normalize(product.getStatus());
+        if ("pending".equals(status)) {
+            return productMapper.toResponse(product);
+        }
+        if (!"draft".equals(status)) {
+            throw new RuntimeException("Product current status cannot be submitted for approval");
+        }
 
-	@Override
-	public ProductResponse approveProduct(@NonNull Long id, ProductApprovalRequest request) {
-		Product product = productRepository.findByProductIdAndIsDeletedFalse(id)
-				.orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        product.setStatus("pending");
+        product.setDeposit(null);
+        product.setEstimatePrice(null);
 
-		// TODO: Add RBAC check here to ensure only admin can call this method
-		// For now, this method should be protected by controller-level security
+        return saveAndMap(product);
+    }
 
-		// Set deposit and estimatePrice - only admin can do this
-		if (request.getDeposit() != null) {
-			product.setDeposit(request.getDeposit());
-		}
-		if (request.getEstimatePrice() != null) {
-			product.setEstimatePrice(request.getEstimatePrice());
-		}
+    @Override
+    public ProductResponse approveProduct(@NonNull Long id, ProductApprovalRequest request) {
+        Product product = getProductOrThrow(id);
 
-		// Update status if provided (typically "approved" or "rejected")
-		String newStatus = request.getStatus();
-		if (newStatus != null) {
-			product.setStatus(newStatus);
+        if (request.getDeposit() != null) {
+            product.setDeposit(request.getDeposit());
+        }
+        if (request.getEstimatePrice() != null) {
+            product.setEstimatePrice(request.getEstimatePrice());
+        }
 
-			// Khi approve/reject product, cũng update auction liên quan
-			// Tìm auction có trạng thái DRAFT thuộc về product này
-			Optional<Auction> draftAuction = auctionRepository.findAll().stream()
-					.filter(a -> a.getProduct() != null
-							&& a.getProduct().getProductId().equals(id)
-							&& "DRAFT".equalsIgnoreCase(a.getStatus()))
-					.findFirst();
+        if (request.getStatus() != null) {
+            product.setStatus(request.getStatus());
+            syncAuctionStatus(product, request.getStatus());
+        }
 
-			if (draftAuction.isPresent()) {
-				Auction auction = draftAuction.get();
-				if ("approved".equalsIgnoreCase(newStatus)) {
-					// Approve: DRAFT -> PENDING (chờ lên sàn)
-					auction.setStatus("PENDING");
-				} else if ("rejected".equalsIgnoreCase(newStatus)) {
-					// Reject: DRAFT -> CANCELLED
-					auction.setStatus("CANCELLED");
-				}
-				auctionRepository.save(auction);
-			}
-		}
+        return saveAndMap(product);
+    }
 
-		Product approved = productRepository.save(Objects.requireNonNull(product));
-		return productMapper.toResponse(approved);
-	}
+    // =========================
+    // CORE HELPERS
+    // =========================
 
-	@Override
-	public ProductResponse requestApproval(@NonNull Long id) {
-		Product product = productRepository.findByProductIdAndIsDeletedFalse(id)
-				.orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+    private Product getProductOrThrow(Long id) {
+        return productRepository.findByProductIdAndIsDeletedFalse(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+    }
 
-		User current = getCurrentUser();
-		if (product.getSeller() == null || !product.getSeller().getUserId().equals(current.getUserId())) {
-			throw new RuntimeException("Bạn không có quyền gửi phê duyệt sản phẩm này");
-		}
+    private void assertSellerOwnership(Product product) {
+        User current = getCurrentUser();
+        if (product.getSeller() == null ||
+                !product.getSeller().getUserId().equals(current.getUserId())) {
+            throw new RuntimeException("You do not have permission to modify this product");
+        }
+    }
 
-		String currentStatus = product.getStatus() == null ? "" : product.getStatus().toLowerCase();
-		if ("pending".equals(currentStatus)) {
-			return productMapper.toResponse(product);
-		}
-		if (!"draft".equals(currentStatus)) {
-			throw new RuntimeException("Sản phẩm ở trạng thái hiện tại không thể gửi phê duyệt");
-		}
+    private ProductResponse saveAndMap(Product product) {
+        return productMapper.toResponse(productRepository.save(product));
+    }
 
-		product.setStatus("pending");
-		product.setDeposit(null);
-		product.setEstimatePrice(null);
+    private Pageable buildPageable(int page, int size) {
+        return PageRequest.of(
+                Math.max(page, 0),
+                size > 0 ? size : 10
+        );
+    }
 
-		Product submitted = productRepository.save(product);
-		return productMapper.toResponse(submitted);
-	}
+    private String normalize(String value) {
+        return value == null ? "" : value.toLowerCase();
+    }
 
-	// Removed resolveSeller(Long) as seller is now bound to current token
+    // =========================
+    // AUCTION SYNC
+    // =========================
 
-	// Resolve current authenticated user from SecurityContext (email as username)
-	private User getCurrentUser() {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		if (authentication == null || !authentication.isAuthenticated()) {
-			throw new RuntimeException("Vui lòng đăng nhập");
-		}
+    private void syncAuctionStatus(Product product, String productStatus) {
+        auctionRepository.findAll().stream()
+                .filter(a -> a.getProduct() != null
+                        && a.getProduct().getProductId().equals(product.getProductId())
+                        && "DRAFT".equalsIgnoreCase(a.getStatus()))
+                .findFirst()
+                .ifPresent(auction -> {
+                    if ("approved".equalsIgnoreCase(productStatus)) {
+                        auction.setStatus("PENDING");
+                    } else if ("rejected".equalsIgnoreCase(productStatus)) {
+                        auction.setStatus("CANCELLED");
+                    }
+                    auctionRepository.save(auction);
+                });
+    }
 
-		String email;
-		Object principal = authentication.getPrincipal();
-		if (principal instanceof UserDetails userDetails) {
-			email = userDetails.getUsername();
-		} else if (principal instanceof String s) {
-			email = s;
-		} else {
-			throw new RuntimeException("Không thể xác định người dùng hiện tại");
-		}
+    // =========================
+    // IMAGE HANDLING
+    // =========================
 
-		return userRepository.findByEmail(email)
-				.orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với email: " + email));
-	}
+    private void applyImages(Product product, List<ImageRequest> images) {
+        if (images == null) return;
 
-	// Hook để tích hợp upload ảnh lên cloud hoặc xử lý metadata trước khi lưu
-	private List<ImageRequest> handleImageUploads(List<ImageRequest> imageRequests) {
-		if (imageRequests == null) {
-			return null;
-		}
+        images.forEach(img -> {
+            if (img.getSecureUrl() != null && !img.getSecureUrl().isBlank()) {
+                img.setImageUrl(img.getSecureUrl());
+            }
+        });
 
-		imageRequests.forEach(imageRequest -> {
-			if (imageRequest.getSecureUrl() != null && !imageRequest.getSecureUrl().isBlank()) {
-				imageRequest.setImageUrl(imageRequest.getSecureUrl());
-			}
-		});
+        List<Image> imageEntities = productMapper.toImageEntities(images);
+        imageEntities.forEach(img -> img.setProduct(product));
 
-		return imageRequests;
-	}
+        if (product.getImages() == null) {
+            product.setImages(new ArrayList<>());
+        } else {
+            product.getImages().clear();
+        }
 
-	private void replaceImages(Product product, List<ImageRequest> imageRequests) {
-		if (imageRequests == null) {
-			return;
-		}
+        product.getImages().addAll(imageEntities);
+        syncPrimaryImage(product);
+    }
 
-		List<Image> imageEntities = productMapper.toImageEntities(imageRequests);
-		imageEntities.forEach(image -> image.setProduct(product));
+    private void syncPrimaryImage(Product product) {
+        if (product.getImages() == null || product.getImages().isEmpty()) {
+            product.setImageUrl(null);
+            return;
+        }
 
-		if (product.getImages() == null) {
-			product.setImages(new ArrayList<>());
-		} else {
-			product.getImages().clear();
-		}
-		product.getImages().addAll(imageEntities);
+        product.getImages().stream()
+                .filter(img -> Boolean.TRUE.equals(img.getIsThumbnail()))
+                .map(Image::getUrl)
+                .findFirst()
+                .or(() -> product.getImages().stream().map(Image::getUrl).findFirst())
+                .ifPresent(product::setImageUrl);
+    }
 
-		if (product.getImages().isEmpty()) {
-			product.setImageUrl(null);
-		}
-	}
+    // =========================
+    // SECURITY
+    // =========================
 
-	private void syncPrimaryImage(Product product) {
-		if (product.getImages() == null || product.getImages().isEmpty()) {
-			product.setImageUrl(null);
-			return;
-		}
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Please log in");
+        }
 
-		product.getImages().stream()
-				.filter(image -> Boolean.TRUE.equals(image.getIsThumbnail()))
-				.map(Image::getUrl)
-				.findFirst()
-				.or(() -> product.getImages().stream().map(Image::getUrl).findFirst())
-				.ifPresent(product::setImageUrl);
-	}
+        Object principal = auth.getPrincipal();
+        String email = principal instanceof UserDetails ud
+                ? ud.getUsername()
+                : principal.toString();
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    }
 }

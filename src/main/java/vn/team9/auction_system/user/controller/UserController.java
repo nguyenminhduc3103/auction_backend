@@ -35,13 +35,13 @@ public class UserController {
         return ResponseEntity.ok(userService.getByEmail(email));
     }
 
-    // 🧩 Lấy public profile của user theo ID (từ nhánh seller_profile)
+    // Get public profile of user by ID (from seller_profile branch)
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getPublicProfile(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getPublicProfile(id));
     }
 
-    // 🧩 Cập nhật thông tin cá nhân (từ main)
+    // Update personal information (from main)
     @PutMapping("/me")
     public ResponseEntity<UserResponse> updateCurrentUser(
             Authentication authentication,
@@ -62,23 +62,23 @@ public class UserController {
             Authentication authentication,
             @RequestParam("file") MultipartFile file) {
         try {
-            // Lấy user hiện tại qua email
+            // Get current user via email
             String email = authentication.getName();
             UserResponse currentUser = userService.getByEmail(email);
 
             String filename = "ID_" + currentUser.getUserId() + "_" + currentUser.getUsername() + ".png";
 
-            // Tạo thư mục nếu chưa có
+            // Create directory if not exists
             Path uploadDir = Paths.get("src/main/resources/static/avatars/users/");
             if (!Files.exists(uploadDir)) {
                 Files.createDirectories(uploadDir);
             }
 
-            // Ghi file (ghi đè nếu có sẵn)
+            // Write file (overwrite if exists)
             Path filePath = uploadDir.resolve(filename);
             Files.write(filePath, file.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
-            // Cập nhật avatar_url trong DB
+            // Update avatar_url in DB
             String relativeUrl = "/avatars/users/" + filename;
             userService.updateAvatarUrl(currentUser.getUserId(), relativeUrl);
 
@@ -87,7 +87,7 @@ public class UserController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Không thể cập nhật avatar"));
+                    .body(Map.of("message", "Unable to update avatar"));
         }
     }
 
@@ -107,5 +107,4 @@ public class UserController {
                 )
         );
     }
-
 }

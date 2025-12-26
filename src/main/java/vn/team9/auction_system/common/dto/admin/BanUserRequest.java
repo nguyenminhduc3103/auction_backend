@@ -6,6 +6,6 @@ import java.time.LocalDateTime;
 @Data
 public class BanUserRequest {
     private Long userId;
-    private String reason;           // lý do ban
-    private LocalDateTime bannedUntil; // thời gian hết hạn ban
+    private String reason;           // ban reason
+    private LocalDateTime bannedUntil; // time to unban
 }
