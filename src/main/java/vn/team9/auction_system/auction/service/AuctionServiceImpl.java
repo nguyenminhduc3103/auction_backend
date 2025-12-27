@@ -106,14 +106,16 @@ public class AuctionServiceImpl implements IAuctionService {
     }
 
     // Start auction session (Admin approves)
-    @Override
-    public void startAuction(Long auctionId) {
-        Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
+@Override
+public void startAuction(Long auctionId) {
+    Auction auction = auctionRepository.findById(auctionId)
+            .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
 
-        if (!"PENDING".equals(auction.getStatus()))
-            throw new RuntimeException("Only PENDING auctions can be started");
+    if (!"PENDING".equals(auction.getStatus())) {
+        throw new RuntimeException("Only PENDING auctions can be started");
+    }
 
+    try {
         auction.setStatus("OPEN");
         auction.setStartTime(LocalDateTime.now());
         Auction saved = auctionRepository.save(auction);
@@ -125,13 +127,18 @@ public class AuctionServiceImpl implements IAuctionService {
                     saved.getProduct().getName(),
                     saved.getAuctionId());
         }
+        auctionRepository.save(auction);
+    } catch (Exception e) {
+        throw new RuntimeException("Failed to start auction: " + e.getMessage(), e);
     }
+}
 
     // Close auction session (when time ends)
     @Override
     public void closeAuction(Long auctionId) {
-        Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
+        try {
+            Auction auction = auctionRepository.findById(auctionId)
+                    .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
 
         if (!"OPEN".equals(auction.getStatus()))
             throw new RuntimeException("Auction must be OPEN to close");
@@ -204,11 +211,15 @@ public class AuctionServiceImpl implements IAuctionService {
                 } catch (Exception e) {
                     log.warn("Error sending auction end notifications: {}", e.getMessage());
                 }
-            }
-        }
+                }
+                }
 
-        auctionRepository.save(auction);
-    }
+                auctionRepository.save(auction);
+                } catch (Exception ex) {
+                log.error("Error closing auction {}: {}", auctionId, ex.getMessage());
+                throw new RuntimeException("Failed to close auction: " + ex.getMessage());
+                }
+                }
 
     // Admin approves auction (DRAFT -> PENDING or CANCELLED)
     @Override
@@ -228,6 +239,7 @@ public class AuctionServiceImpl implements IAuctionService {
         auction.setStatus(newStatus);
 
         if ("PENDING".equals(newStatus)) {
+            auction.setStatus("PENDING");
             Product product = auction.getProduct();
             product.setStatus("approved");
             productRepository.save(product);
@@ -247,6 +259,9 @@ public class AuctionServiceImpl implements IAuctionService {
             } catch (Exception e) {
                 log.warn("⚠️ Failed to send rejection notification: {}", e.getMessage());
             }
+        } else {
+            // Thay vì CANCELLED → dùng CLOSED
+            auction.setStatus("CLOSED");
         }
 
         Auction saved = auctionRepository.save(auction);
