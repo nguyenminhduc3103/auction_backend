@@ -27,7 +27,7 @@ public class NotificationEventPublisher {
             .type("SYSTEM")
             .category("AUCTION_PENDING_APPROVAL")
             .priority("HIGH")
-            .actionUrl("/admin/auctions/approval")
+            .actionUrl("/admin/products/approval")
             .actionLabel("Duyệt cuộc đấu giá")
             .metadata(Map.of("auctionId", auctionId, "sellerName", sellerName))
             .build();
@@ -62,10 +62,10 @@ public class NotificationEventPublisher {
             .userId(userId)
             .title("Phiên đấu giá bắt đầu")
             .message("Phiên đấu giá \"" + auctionTitle + "\" của bạn đã bắt đầu")
-            .type("SYSTEM")
+            .type("BID")
             .category("AUCTION_STARTED")
             .priority("MEDIUM")
-            .actionUrl("/auction/" + auctionId)
+            .actionUrl("/auctions/" + auctionId)
             .actionLabel("Xem cuộc đấu giá")
             .metadata(createMetadata(auctionId, null))
             .build();
@@ -84,7 +84,7 @@ public class NotificationEventPublisher {
             .type("BID")
             .category("BID_PLACED")
             .priority("MEDIUM")
-            .actionUrl("/auction/" + auctionId)
+            .actionUrl("/auctions/" + auctionId)
             .actionLabel("Xem cuộc đấu giá")
             .metadata(createMetadata(auctionId, bidAmount))
             .build();
@@ -103,7 +103,7 @@ public class NotificationEventPublisher {
             .type("BID")
             .category("LEADING_BID")
             .priority("MEDIUM")
-            .actionUrl("/auction/" + auctionId)
+            .actionUrl("/auctions/" + auctionId)
             .actionLabel("Xem cuộc đấu giá")
             .metadata(createMetadata(auctionId, bidAmount))
             .build();
@@ -122,7 +122,7 @@ public class NotificationEventPublisher {
             .type("BID")
             .category("OUTBID")
             .priority("HIGH")
-            .actionUrl("/auction/" + auctionId)
+            .actionUrl("/auctions/" + auctionId)
             .actionLabel("Đặt giá tiếp")
             .metadata(createMetadata(auctionId, newBidAmount))
             .build();
@@ -141,7 +141,7 @@ public class NotificationEventPublisher {
             .type("BID")
             .category("HIGHEST_BID_CHANGED")
             .priority("MEDIUM")
-            .actionUrl("/auction/" + auctionId)
+            .actionUrl("/auctions/" + auctionId)
             .actionLabel("Xem chi tiết")
             .metadata(createMetadata(auctionId, highestBidAmount))
             .build();
@@ -160,7 +160,7 @@ public class NotificationEventPublisher {
             .type("BID")
             .category("AUCTION_ENDING_SOON")
             .priority("HIGH")
-            .actionUrl("/auction/" + auctionId)
+            .actionUrl("/auctions/" + auctionId)
             .actionLabel("Xem ngay")
             .metadata(createMetadata(auctionId, null))
             .build();
@@ -179,8 +179,8 @@ public class NotificationEventPublisher {
             .type("BID")
             .category("AUCTION_WON")
             .priority("HIGH")
-            .actionUrl("/auctions/" + auctionId)
-            .actionLabel("Thanh toán ngay")
+            .actionUrl("/user/bid/history")
+            .actionLabel("Xem chi tiết")
             .metadata(Map.of(
                 "auctionId", auctionId,
                 "finalPrice", finalPrice
@@ -201,7 +201,7 @@ public class NotificationEventPublisher {
             .type("BID")
             .category("AUCTION_LOST")
             .priority("LOW")
-            .actionUrl("/auction/" + auctionId)
+            .actionUrl("/auctions/" + auctionId)
             .actionLabel("Xem chi tiết")
             .metadata(createMetadata(auctionId, null))
             .build();

@@ -25,4 +25,6 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 
     List<Bid> findByAuction_AuctionIdAndIsAutoTrue(Long auctionId);
     Optional<Bid> findTopByAuction_AuctionIdAndBidder_UserIdAndIsAutoTrueOrderByCreatedAtDesc(Long auctionId, Long userId);
+    
+    List<Bid> findByAuction_AuctionIdAndIsHighestTrue(Long auctionId);
 }

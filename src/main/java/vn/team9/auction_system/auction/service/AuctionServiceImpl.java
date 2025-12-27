@@ -25,6 +25,7 @@ import vn.team9.auction_system.transaction.repository.TransactionAfterAuctionRep
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
 import vn.team9.auction_system.feedback.event.NotificationEventPublisher;
+import vn.team9.auction_system.transaction.service.TransactionAfterAuctionServiceImpl;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -47,6 +48,7 @@ public class AuctionServiceImpl implements IAuctionService {
     private final BidRepository bidRepository;
     private final AuctionNotificationService auctionNotificationService;
     private final NotificationEventPublisher notificationPublisher;
+    private final TransactionAfterAuctionServiceImpl transactionService;
 
     // Create new auction session (seller request)
     @Override
@@ -147,30 +149,46 @@ public class AuctionServiceImpl implements IAuctionService {
                 User winner = highestBid.getBidder();
                 auction.setWinner(winner);
 
-                // Create TransactionAfterAuction
-                TransactionAfterAuction txn = new TransactionAfterAuction();
-                txn.setAuction(auction);
-                txn.setSeller(auction.getProduct().getSeller());
-                txn.setBuyer(winner);
-                txn.setAmount(highestBid.getBidAmount());
-                txn.setStatus("PENDING"); // or SUCCESS if immediate payment
-                transactionAfterAuctionRepository.save(txn);
+                User seller = auction.getProduct().getSeller();
+
+                // 🆕 Create transaction via service (sends PAYMENT_DUE & PAYMENT_PENDING notifications)
+                try {
+                    transactionService.createTransactionAfterAuction(
+                            auction,
+                            winner,
+                            seller,
+                            highestBid.getBidAmount()
+                    );
+                } catch (Exception e) {
+                    log.warn("Error creating transaction: {}", e.getMessage());
+                    // Fallback: create manually without notifications
+                    TransactionAfterAuction txn = new TransactionAfterAuction();
+                    txn.setAuction(auction);
+                    txn.setSeller(seller);
+                    txn.setBuyer(winner);
+                    txn.setAmount(highestBid.getBidAmount());
+                    txn.setStatus("PENDING");
+                    transactionAfterAuctionRepository.save(txn);
+                }
 
                 // Option: update seller balance
-                User seller = auction.getProduct().getSeller();
                 seller.setBalance(seller.getBalance().add(highestBid.getBidAmount()));
                 userRepository.save(seller);
 
-                // NOTIFICATIONS
+                // NOTIFICATIONS: AUCTION_WON & AUCTION_LOST & SELLER_AUCTION_ENDED
                 try {
-                    // 1. Notify Winner
+                    // 1. Notify Seller (Auction kết thúc - thông báo kết quả)
+                    auctionNotificationService.notifySellerAuctionEnded(auction);
+                    log.info("✅ Seller auction ended notification sent");
+                    
+                    // 2. Notify Winner
                     notificationPublisher.publishAuctionWonNotification(
                             winner.getUserId(),
                             auction.getProduct().getName(),
                             highestBid.getBidAmount().doubleValue(),
                             auction.getAuctionId());
 
-                    // 2. Notify Losers
+                    // 3. Notify Losers
                     List<User> distinctBidders = auction.getBids().stream()
                             .map(Bid::getBidder)
                             .distinct()
@@ -184,7 +202,7 @@ public class AuctionServiceImpl implements IAuctionService {
                                 auction.getAuctionId());
                     }
                 } catch (Exception e) {
-                    System.err.println("Error sending auction end notifications: " + e.getMessage());
+                    log.warn("Error sending auction end notifications: {}", e.getMessage());
                 }
             }
         }
@@ -214,16 +232,20 @@ public class AuctionServiceImpl implements IAuctionService {
             product.setStatus("approved");
             productRepository.save(product);
 
-            // Notify Seller
-            if (product.getSeller() != null) {
-                log.info("🔔 Attempting to send approval notification to seller: {}", product.getSeller().getUserId());
-                notificationPublisher.publishAuctionApprovedNotification(
-                        product.getSeller().getUserId(),
-                        product.getName(),
-                        auction.getAuctionId());
-                log.info("✅ Approval notification sent");
-            } else {
-                log.warn("⚠️ No seller found for product: {}", product.getName());
+            // 🆕 Notify Seller using AuctionNotificationService (consistent with AUCTION_PENDING_APPROVAL)
+            try {
+                auctionNotificationService.notifySellerAuctionApproved(auction);
+                log.info("✅ AUCTION_APPROVED notification sent to seller");
+            } catch (Exception e) {
+                log.warn("⚠️ Failed to send approval notification: {}", e.getMessage());
+            }
+        } else if ("CANCELLED".equals(newStatus)) {
+            // 🆕 Notify Seller when auction is REJECTED
+            try {
+                auctionNotificationService.notifySellerAuctionRejected(auction, "Admin rejected the auction");
+                log.info("✅ Auction rejected notification sent to seller");
+            } catch (Exception e) {
+                log.warn("⚠️ Failed to send rejection notification: {}", e.getMessage());
             }
         }
 

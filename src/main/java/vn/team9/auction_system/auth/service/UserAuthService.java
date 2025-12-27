@@ -33,14 +33,16 @@ public class UserAuthService {
         if (existingOpt.isPresent()) {
             User existingUser = existingOpt.get();
 
-            // Nếu user chưa xác thực (PENDING) → gửi lại mail xác thực
+            // 🚀 FOR TESTING: Auto-activate PENDING users instead of sending email
             if ("PENDING".equalsIgnoreCase(existingUser.getStatus())) {
-                existingUser.setVerificationToken(UUID.randomUUID().toString());
-                existingUser.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(15));
+                // existingUser.setVerificationToken(UUID.randomUUID().toString());
+                // existingUser.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(15));
+                existingUser.setStatus("ACTIVE");
+                existingUser.setVerifiedAt(LocalDateTime.now());
                 userRepository.save(existingUser);
 
-                emailService.sendVerificationEmail(existingUser.getEmail(), existingUser.getVerificationToken());
-                System.out.println("Đã gửi lại email xác thực cho " + existingUser.getEmail());
+                // emailService.sendVerificationEmail(existingUser.getEmail(), existingUser.getVerificationToken());
+                System.out.println("✅ User activated (test mode - email skipped): " + existingUser.getEmail());
 
                 return AuthResponse.builder()
                         .userId(existingUser.getUserId())
@@ -48,7 +50,7 @@ public class UserAuthService {
                         .email(existingUser.getEmail())
                         .fullName(existingUser.getFullName())
                         .username(existingUser.getUsername())
-                        .status(existingUser.getStatus())
+                        .status("ACTIVE")
                         .tokenType("Bearer")
                         .accessToken(null)
                         .build();
@@ -68,15 +70,19 @@ public class UserAuthService {
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setStatus("PENDING");
+        // 🚀 FOR TESTING: Set status to ACTIVE directly (skip email verification)
+        user.setStatus("ACTIVE");
         user.setCreatedAt(LocalDateTime.now());
-        user.setVerificationToken(UUID.randomUUID().toString());
-        user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(15));
+        user.setVerifiedAt(LocalDateTime.now());
+        // user.setVerificationToken(UUID.randomUUID().toString());
+        // user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(15));
 
         userRepository.save(user);
 
-        System.out.println("Sending verification email to: " + user.getEmail());
-        emailService.sendVerificationEmail(user.getEmail(), user.getVerificationToken());
+        // 🚀 FOR TESTING: Skip email sending
+        // System.out.println("Sending verification email to: " + user.getEmail());
+        // emailService.sendVerificationEmail(user.getEmail(), user.getVerificationToken());
+        System.out.println("✅ User registered and activated (test mode - email skipped): " + user.getEmail());
 
         return AuthResponse.builder()
                 .userId(user.getUserId())
@@ -168,15 +174,22 @@ public class UserAuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với email: " + email));
 
-        if (!"PENDING".equalsIgnoreCase(user.getStatus())) {
-            throw new RuntimeException("Tài khoản này đã được xác thực hoặc không hợp lệ.");
+        // 🚀 FOR TESTING: Skip email verification, auto-activate
+        if (!"PENDING".equalsIgnoreCase(user.getStatus()) && !"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+            throw new RuntimeException("Tài khoản này không hợp lệ.");
         }
 
-        user.setVerificationToken(UUID.randomUUID().toString());
-        user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(15));
+        // Auto-activate if PENDING
+        if ("PENDING".equalsIgnoreCase(user.getStatus())) {
+            user.setStatus("ACTIVE");
+            user.setVerifiedAt(LocalDateTime.now());
+        }
+
+        // user.setVerificationToken(UUID.randomUUID().toString());
+        // user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
-        emailService.sendVerificationEmail(user.getEmail(), user.getVerificationToken());
-        System.out.println("📨 Đã gửi lại email xác thực cho " + user.getEmail());
+        // emailService.sendVerificationEmail(user.getEmail(), user.getVerificationToken());
+        System.out.println("✅ Account activated (test mode - email skipped): " + user.getEmail());
     }
 }

@@ -247,9 +247,12 @@ public class NotificationService implements INotificationService {
         if (category == null)
             return false;
 
+        // 🆕 Added AUCTION_STARTED (for sellers' auctions bidders participate in)
         boolean isAllowed = category.equals("BID_PLACED") ||
                 category.equals("OUTBID") ||
+                category.equals("AUCTION_STARTING_SOON") ||
                 category.equals("AUCTION_ENDING_SOON") ||
+                category.equals("AUCTION_STARTED") ||
                 category.equals("AUCTION_WON") ||
                 category.equals("AUCTION_LOST") ||
                 category.equals("LEADING_BID") ||
@@ -270,6 +273,7 @@ public class NotificationService implements INotificationService {
         if (category == null)
             return false;
 
+        // 🆕 Added PAYMENT_CONFIRMED and PAYMENT_PENDING for sellers
         boolean isAllowed = category.equals("PRODUCT_APPROVED") ||
                 category.equals("PRODUCT_REJECTED") ||
                 category.equals("AUCTION_APPROVED") ||
@@ -278,6 +282,8 @@ public class NotificationService implements INotificationService {
                 category.equals("AUCTION_ENDED") ||
                 category.equals("HIGHEST_BID_CHANGED") ||
                 category.equals("PAYMENT_RECEIVED") ||
+                category.equals("PAYMENT_CONFIRMED") ||
+                category.equals("PAYMENT_PENDING") ||
                 category.equals("TRANSACTION_COMPLETED") ||
                 category.equals("TRANSACTION_CANCELLED");
 

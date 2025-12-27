@@ -57,7 +57,7 @@ public class AuctionNotificationService {
                             .type("SYSTEM")
                             .category("AUCTION_PENDING_APPROVAL")
                             .priority("HIGH")
-                            .actionUrl("/admin/auctions/approval")
+                            .actionUrl("/admin/products/approval")
                             .actionLabel("Xem chi tiết")
                             .build();
 
@@ -306,7 +306,7 @@ public class AuctionNotificationService {
     /**
      * Gửi thông báo kết thúc đến Seller
      */
-    private void notifySellerAuctionEnded(Auction auction) {
+    public void notifySellerAuctionEnded(Auction auction) {
         try {
             User seller = auction.getProduct().getSeller();
             String winnerInfo = auction.getWinner() != null
