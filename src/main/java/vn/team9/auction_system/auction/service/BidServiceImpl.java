@@ -11,6 +11,7 @@ import vn.team9.auction_system.auction.repository.BidRepository;
 import vn.team9.auction_system.common.dto.auction.BidRequest;
 import vn.team9.auction_system.common.dto.auction.BidResponse;
 import vn.team9.auction_system.common.service.IBidService;
+import vn.team9.auction_system.feedback.event.NotificationEventPublisher;
 import vn.team9.auction_system.transaction.service.AccountTransactionServiceImpl;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
@@ -29,15 +30,18 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
 
     private final IAutoBidService autoBidService;
     private final AccountTransactionServiceImpl transactionService;
+    private final NotificationEventPublisher notificationPublisher;
 
     public BidServiceImpl(BidRepository bidRepository,
                           AuctionRepository auctionRepository,
                           UserRepository userRepository,
                           IAutoBidService autoBidService,
-                          AccountTransactionServiceImpl transactionService) {
+                          AccountTransactionServiceImpl transactionService,
+                          NotificationEventPublisher notificationPublisher) {
         super(auctionRepository, bidRepository, userRepository);
         this.autoBidService = autoBidService;
         this.transactionService = transactionService;
+        this.notificationPublisher = notificationPublisher;
     }
 
     @Override
@@ -97,10 +101,22 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
                 return BidResponse.error(balanceError);
             }
 
-            // STEP 9: Reset highest flags
+            // STEP 9: Find previous highest bidder BEFORE resetting flags
+            String auctionTitle = auction.getProduct().getName();
+            Double bidAmountDouble = request.getBidAmount().doubleValue();
+            Long sellerId = auction.getProduct().getSeller().getUserId();
+            Long bidderId = bidder.getUserId();
+            
+            Optional<Bid> previousHighestOpt = bidRepository
+                .findByAuction_AuctionIdAndIsHighestTrue(auction.getAuctionId())
+                .stream()
+                .filter(b -> !b.getBidder().getUserId().equals(bidderId))
+                .findFirst();
+
+            // STEP 10: Reset highest flags
             resetHighestBidFlags(auction.getAuctionId());
 
-            // STEP 10: Create new bid
+            // STEP 11: Create new bid
             Bid bid = new Bid();
             bid.setAuction(auction);
             bid.setBidder(bidder);
@@ -111,11 +127,57 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
 
             bidRepository.save(bid);
 
-            // STEP 11: Update auction
+            // STEP 12: Update auction
             auction.setHighestCurrentPrice(request.getBidAmount());
             auctionRepository.save(auction);
 
-            // STEP 12: Trigger auto-bid
+            // STEP 13: Send notifications
+            try {
+                // 1️⃣ Notify bidder: BID_PLACED
+                notificationPublisher.publishBidPlacedNotification(
+                    bidderId,
+                    auctionTitle,
+                    bidAmountDouble,
+                    auction.getAuctionId()
+                );
+                log.info("✅ BID_PLACED notification sent to bidder");
+                
+                // 2️⃣ Notify previous highest bidder: OUTBID
+                if (previousHighestOpt.isPresent()) {
+                    Bid previousBid = previousHighestOpt.get();
+                    notificationPublisher.publishOutbidNotification(
+                        previousBid.getBidder().getUserId(),
+                        auctionTitle,
+                        bidAmountDouble,
+                        auction.getAuctionId()
+                    );
+                    log.info("✅ OUTBID notification sent to previous highest bidder");
+                }
+                
+                // 3️⃣ Notify bidder: LEADING_BID
+                notificationPublisher.publishHighestBidderNotification(
+                    bidderId,
+                    auctionTitle,
+                    bidAmountDouble,
+                    auction.getAuctionId()
+                );
+                log.info("✅ LEADING_BID notification sent to new highest bidder");
+                
+                // 4️⃣ Notify seller: HIGHEST_BID_CHANGED
+                if (!sellerId.equals(bidderId)) {
+                    notificationPublisher.publishHighestBidderChangedNotification(
+                        sellerId, 
+                        auctionTitle, 
+                        bidAmountDouble, 
+                        auction.getAuctionId()
+                    );
+                    log.info("✅ HIGHEST_BID_CHANGED notification sent to seller");
+                }
+            } catch (Exception e) {
+                log.warn("⚠️ Failed to send bid notifications: {}", e.getMessage());
+            }
+
+            // STEP 14: Trigger auto-bid
             try {
                 autoBidService.handleManualBid(auction.getAuctionId());
             } catch (Exception e) {

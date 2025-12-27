@@ -14,6 +14,8 @@ import vn.team9.auction_system.common.dto.auction.BidResponse;
 import vn.team9.auction_system.transaction.service.AccountTransactionServiceImpl;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
+import vn.team9.auction_system.feedback.event.NotificationEventPublisher;
+import vn.team9.auction_system.auction.model.Auction;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidService {
 
     private final AuctionEventPublisher eventPublisher;
+    private final NotificationEventPublisher notificationPublisher;
     private final AccountTransactionServiceImpl transactionService;
     private static final int MAX_AUTO_BID_ITERATIONS = 10;
 
@@ -38,9 +41,11 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
                               BidRepository bidRepository,
                               UserRepository userRepository,
                               AuctionEventPublisher eventPublisher,
+                              NotificationEventPublisher notificationPublisher,
                               AccountTransactionServiceImpl transactionService) {
         super(auctionRepository, bidRepository, userRepository);
         this.eventPublisher = eventPublisher;
+        this.notificationPublisher = notificationPublisher;
         this.transactionService = transactionService;
     }
 
@@ -341,9 +346,29 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
             // 10) Publish event
             try {
                 eventPublisher.publishAutoBidTriggeredEvent(auction);
-                log.warn("Event published");
+
+                // NOTIFICATIONS
+                String auctionTitle = auction.getProduct().getName();
+                Double bidAmountDouble = proposed.doubleValue();
+                Long bidderId = challengerConfig.getBidder().getUserId();
+
+                // 1. Notify Bidder (Auto Bid Placed)
+                notificationPublisher.publishBidPlacedNotification(bidderId, auctionTitle, bidAmountDouble, auction.getAuctionId());
+
+                // 2. Notify Previous Highest Bidder (Outbid)
+                if (currentHighestBid != null && !currentHighestBid.getBidder().getUserId().equals(bidderId)) {
+                     notificationPublisher.publishOutbidNotification(currentHighestBid.getBidder().getUserId(), auctionTitle, bidAmountDouble, auction.getAuctionId());
+                }
+
+                // 3. Notify Seller (Highest Bid Changed)
+                Long sellerId = auction.getProduct().getSeller().getUserId();
+                 if (!sellerId.equals(bidderId)) {
+                     notificationPublisher.publishHighestBidderChangedNotification(sellerId, auctionTitle, bidAmountDouble, auction.getAuctionId());
+                }
+
+                log.warn("Notifications sent for auto-bid");
             } catch (Exception e) {
-                log.warn("Error publishing event: {}", e.getMessage());
+                log.warn("Error publishing event/notification: {}", e.getMessage());
             }
 
             hasNewBid = true;

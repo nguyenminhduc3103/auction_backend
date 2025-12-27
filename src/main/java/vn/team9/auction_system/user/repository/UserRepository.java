@@ -16,6 +16,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsernameAndUserIdNot(String username, Long userId);
     boolean existsByEmailAndUserIdNot(String email, Long userId);
     List<User> findAllByIsDeletedFalse();
+    
+    List<User> findByRole_RoleName(String roleName);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<User> findByUserId(Long userId);

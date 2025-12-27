@@ -16,6 +16,8 @@ import vn.team9.auction_system.transaction.repository.AccountTransactionReposito
 import vn.team9.auction_system.transaction.repository.TransactionAfterAuctionRepository;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
+import vn.team9.auction_system.feedback.event.NotificationEventPublisher;
+import lombok.extern.slf4j.Slf4j;
 
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
@@ -24,6 +26,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuctionService {
 
     private final TransactionAfterAuctionRepository transactionRepo;
@@ -31,6 +34,47 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
     private final UserRepository userRepo;
     private final TransactionMapper transactionMapper;
     private final AccountTransactionServiceImpl accountTransactionServiceImpl;
+    private final NotificationEventPublisher notificationPublisher;
+
+    // ------------------------------------
+    // Create transaction after auction (called when auction closes)
+    // ------------------------------------
+    public TransactionAfterAuctionResponse createTransactionAfterAuction(Auction auction, User buyer, User seller, BigDecimal amount) {
+        TransactionAfterAuction txn = new TransactionAfterAuction();
+        txn.setAuction(auction);
+        txn.setBuyer(buyer);
+        txn.setSeller(seller);
+        txn.setAmount(amount);
+        txn.setStatus(TransactionStatus.PENDING.name());
+        transactionRepo.save(txn);
+
+        // 🆕 Send PAYMENT_DUE notification to buyer
+        try {
+            notificationPublisher.publishPaymentDueNotification(
+                buyer.getUserId(),
+                amount.doubleValue(),
+                txn.getTransactionId()
+            );
+            log.info("✅ PAYMENT_DUE notification sent to buyer");
+        } catch (Exception e) {
+            log.warn("⚠️ Failed to send payment due notification: {}", e.getMessage());
+        }
+
+        // 🆕 Send PAYMENT_PENDING notification to seller
+        try {
+            notificationPublisher.publishPaymentPendingNotification(
+                seller.getUserId(),
+                buyer.getFullName(),
+                amount.doubleValue(),
+                txn.getTransactionId()
+            );
+            log.info("✅ PAYMENT_PENDING notification sent to seller");
+        } catch (Exception e) {
+            log.warn("⚠️ Failed to send payment pending notification: {}", e.getMessage());
+        }
+
+        return toResponse(txn);
+    }
 
     // ------------------------------------
     // Buyer pays (money goes into escrow)
@@ -85,6 +129,31 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         // 3) Update transaction status: PAID (in escrow)
         txn.setStatus(TransactionStatus.PAID.name());
         transactionRepo.save(txn);
+
+        // 4️⃣ Send PAYMENT_SUCCESS notification to buyer
+        try {
+            notificationPublisher.publishPaymentSuccessNotification(
+                buyer.getUserId(),
+                amount.doubleValue(),
+                txn.getTransactionId()
+            );
+            log.info("✅ PAYMENT_SUCCESS notification sent to buyer");
+        } catch (Exception e) {
+            log.warn("⚠️ Failed to send payment success notification: {}", e.getMessage());
+        }
+
+        // 5️⃣ Send PAYMENT_CONFIRMED notification to seller
+        try {
+            notificationPublisher.publishPaymentConfirmedNotification(
+                seller.getUserId(),
+                buyer.getFullName(),
+                amount.doubleValue(),
+                txn.getTransactionId()
+            );
+            log.info("✅ PAYMENT_CONFIRMED notification sent to seller");
+        } catch (Exception e) {
+            log.warn("⚠️ Failed to send payment confirmed notification: {}", e.getMessage());
+        }
 
         return toResponse(txn);
     }
@@ -213,6 +282,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
 
     private void handleSuccessfulTransaction(TransactionAfterAuction txn) {
         User seller = txn.getSeller();
+        User buyer = txn.getBuyer();
         BigDecimal amount = txn.getAmount();
 
         // 1) Add money to seller (only once)
@@ -222,7 +292,7 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         // 2) Update account transactions from PENDING -> SUCCESS
         // - buyer: type = WITHDRAW, status = PENDING => SUCCESS
         // - seller: type = DEPOSIT, status = PENDING => SUCCESS
-        List<AccountTransaction> buyerPending = accountRepo.findByUserAndTypeAndStatus(txn.getBuyer(), "TRANSFER",
+        List<AccountTransaction> buyerPending = accountRepo.findByUserAndTypeAndStatus(buyer, "TRANSFER",
                 "PENDING");
         buyerPending.forEach(t -> t.setStatus("SUCCESS"));
         accountRepo.saveAll(buyerPending);
@@ -230,6 +300,23 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         List<AccountTransaction> sellerPending = accountRepo.findByUserAndTypeAndStatus(seller, "RECEIVED", "PENDING");
         sellerPending.forEach(t -> t.setStatus("SUCCESS"));
         accountRepo.saveAll(sellerPending);
+
+        // 3️⃣ Send SHIPMENT_CONFIRMED notification to buyer
+        try {
+            if (txn.getAuction() != null && txn.getAuction().getProduct() != null) {
+                String productName = txn.getAuction().getProduct().getName();
+                String trackingNumber = "TXN-" + txn.getTransactionId(); // Generate tracking number
+                notificationPublisher.publishShipmentConfirmedNotification(
+                    buyer.getUserId(),
+                    productName,
+                    trackingNumber
+                );
+                log.info("✅ SHIPMENT_CONFIRMED notification sent to buyer: {} for product: {}", 
+                    buyer.getUserId(), productName);
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ Failed to send shipment notification: {}", e.getMessage());
+        }
     }
 
     private void handleCancelledTransaction(TransactionAfterAuction txn) {
@@ -245,6 +332,19 @@ public class TransactionAfterAuctionServiceImpl implements ITransactionAfterAuct
         List<AccountTransaction> pendings = accountRepo.findByUsersAndStatus(List.of(buyer, seller), "PENDING");
         pendings.forEach(t -> t.setStatus("FAILED"));
         accountRepo.saveAll(pendings);
+
+        // 3️⃣ Send PAYMENT_FAILED notification to buyer
+        try {
+            notificationPublisher.publishPaymentFailedNotification(
+                buyer.getUserId(),
+                amount.doubleValue(),
+                "Transaction cancelled",
+                txn.getTransactionId()
+            );
+            log.info("✅ PAYMENT_FAILED notification sent to buyer");
+        } catch (Exception e) {
+            log.warn("⚠️ Failed to send payment failed notification: {}", e.getMessage());
+        }
     }
 
     private TransactionAfterAuctionResponse toResponse(TransactionAfterAuction txn) {
