@@ -33,11 +33,11 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
     private final NotificationEventPublisher notificationPublisher;
 
     public BidServiceImpl(BidRepository bidRepository,
-                          AuctionRepository auctionRepository,
-                          UserRepository userRepository,
-                          IAutoBidService autoBidService,
-                          AccountTransactionServiceImpl transactionService,
-                          NotificationEventPublisher notificationPublisher) {
+            AuctionRepository auctionRepository,
+            UserRepository userRepository,
+            IAutoBidService autoBidService,
+            AccountTransactionServiceImpl transactionService,
+            NotificationEventPublisher notificationPublisher) {
         super(auctionRepository, bidRepository, userRepository);
         this.autoBidService = autoBidService;
         this.transactionService = transactionService;
@@ -83,8 +83,7 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
                 log.warn("Bid amount too low: {} <= {}", request.getBidAmount(), currentHighest);
                 return BidResponse.error(
                         String.format("Bid amount (%s) must be higher than current highest bid (%s)",
-                                request.getBidAmount(), currentHighest)
-                );
+                                request.getBidAmount(), currentHighest));
             }
 
             // STEP 7: Check user cannot bid continuously
@@ -95,8 +94,7 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
 
             // STEP 8: Validate balance
             String balanceError = validateBalanceForManualBidSafe(
-                    bidder.getUserId(), request.getBidAmount(), auction.getAuctionId()
-            );
+                    bidder.getUserId(), request.getBidAmount(), auction.getAuctionId());
             if (balanceError != null) {
                 return BidResponse.error(balanceError);
             }
@@ -106,12 +104,21 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
             Double bidAmountDouble = request.getBidAmount().doubleValue();
             Long sellerId = auction.getProduct().getSeller().getUserId();
             Long bidderId = bidder.getUserId();
-            
+
             Optional<Bid> previousHighestOpt = bidRepository
-                .findByAuction_AuctionIdAndIsHighestTrue(auction.getAuctionId())
-                .stream()
-                .filter(b -> !b.getBidder().getUserId().equals(bidderId))
-                .findFirst();
+                    .findByAuction_AuctionIdAndIsHighestTrue(auction.getAuctionId())
+                    .stream()
+                    .filter(b -> !b.getBidder().getUserId().equals(bidderId))
+                    .findFirst();
+
+            System.out.println("\n🔍 [DEBUG] Checking for previous highest bidder");
+            System.out.println("   Current bidder: " + bidderId);
+            System.out.println("   Previous highest found: " + previousHighestOpt.isPresent());
+            if (previousHighestOpt.isPresent()) {
+                System.out.println("   Previous bidder userId: " + previousHighestOpt.get().getBidder().getUserId());
+                System.out
+                        .println("   Previous bidder username: " + previousHighestOpt.get().getBidder().getUsername());
+            }
 
             // STEP 10: Reset highest flags
             resetHighestBidFlags(auction.getAuctionId());
@@ -135,42 +142,38 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
             try {
                 // 1️⃣ Notify bidder: BID_PLACED
                 notificationPublisher.publishBidPlacedNotification(
-                    bidderId,
-                    auctionTitle,
-                    bidAmountDouble,
-                    auction.getAuctionId()
-                );
+                        bidderId,
+                        auctionTitle,
+                        bidAmountDouble,
+                        auction.getAuctionId());
                 log.info("✅ BID_PLACED notification sent to bidder");
-                
+
                 // 2️⃣ Notify previous highest bidder: OUTBID
                 if (previousHighestOpt.isPresent()) {
                     Bid previousBid = previousHighestOpt.get();
                     notificationPublisher.publishOutbidNotification(
-                        previousBid.getBidder().getUserId(),
-                        auctionTitle,
-                        bidAmountDouble,
-                        auction.getAuctionId()
-                    );
+                            previousBid.getBidder().getUserId(),
+                            auctionTitle,
+                            bidAmountDouble,
+                            auction.getAuctionId());
                     log.info("✅ OUTBID notification sent to previous highest bidder");
                 }
-                
+
                 // 3️⃣ Notify bidder: LEADING_BID
                 notificationPublisher.publishHighestBidderNotification(
-                    bidderId,
-                    auctionTitle,
-                    bidAmountDouble,
-                    auction.getAuctionId()
-                );
+                        bidderId,
+                        auctionTitle,
+                        bidAmountDouble,
+                        auction.getAuctionId());
                 log.info("✅ LEADING_BID notification sent to new highest bidder");
-                
+
                 // 4️⃣ Notify seller: HIGHEST_BID_CHANGED
                 if (!sellerId.equals(bidderId)) {
                     notificationPublisher.publishHighestBidderChangedNotification(
-                        sellerId, 
-                        auctionTitle, 
-                        bidAmountDouble, 
-                        auction.getAuctionId()
-                    );
+                            sellerId,
+                            auctionTitle,
+                            bidAmountDouble,
+                            auction.getAuctionId());
                     log.info("✅ HIGHEST_BID_CHANGED notification sent to seller");
                 }
             } catch (Exception e) {
@@ -278,26 +281,26 @@ public class BidServiceImpl extends AbstractBidService implements IBidService {
             boolean isCurrentHighestBidder = currentHighestInThisAuction.isPresent() &&
                     currentHighestInThisAuction.get().getBidder().getUserId().equals(userId);
 
-            BigDecimal currentHighestAmount = isCurrentHighestBidder ?
-                    currentHighestInThisAuction.get().getBidAmount() : BigDecimal.ZERO;
+            BigDecimal currentHighestAmount = isCurrentHighestBidder ? currentHighestInThisAuction.get().getBidAmount()
+                    : BigDecimal.ZERO;
 
-            BigDecimal availableForNewBid = isCurrentHighestBidder ?
-                    withdrawable.add(currentHighestAmount) : withdrawable;
+            BigDecimal availableForNewBid = isCurrentHighestBidder ? withdrawable.add(currentHighestAmount)
+                    : withdrawable;
 
             if (availableForNewBid.compareTo(bidAmount) < 0) {
                 if (isCurrentHighestBidder) {
                     return String.format("""
-                        Insufficient credit to replace bid.
-                        • Withdrawable balance: %s VND
-                        • Amount locked in this auction: %s VND
-                        • Total available: %s VND
-                        • Required: %s VND""",
+                            Insufficient credit to replace bid.
+                            • Withdrawable balance: %s VND
+                            • Amount locked in this auction: %s VND
+                            • Total available: %s VND
+                            • Required: %s VND""",
                             withdrawable, currentHighestAmount, availableForNewBid, bidAmount);
                 } else {
                     return String.format("""
-                        Not enough credit.
-                        • Available: %s VND
-                        • Require: %s VND""",
+                            Not enough credit.
+                            • Available: %s VND
+                            • Require: %s VND""",
                             availableForNewBid, bidAmount);
                 }
             }

@@ -9,6 +9,7 @@ import vn.team9.auction_system.auction.model.Bid;
 import vn.team9.auction_system.auction.repository.BidRepository;
 import vn.team9.auction_system.common.dto.notification.NotificationRequest;
 import vn.team9.auction_system.common.service.INotificationService;
+import vn.team9.auction_system.product.model.Product;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
 
@@ -80,28 +81,62 @@ public class AuctionNotificationService {
      */
     public void notifySellerAuctionApproved(Auction auction) {
         try {
-            User seller = auction.getProduct().getSeller();
+            System.out.println("\n======== AUCTION APPROVED NOTIFICATION ========");
+            System.out.println("🔍 Auction ID: " + (auction != null ? auction.getAuctionId() : "NULL"));
+
+            // ✅ FIX: Add null checks for auction, product, and seller
+            if (auction == null) {
+                System.out.println("❌ Auction is null - RETURNING");
+                log.warn("❌ Auction is null");
+                return;
+            }
+
+            Product product = auction.getProduct();
+            if (product == null) {
+                log.warn("❌ Product not found for auction: {}", auction.getAuctionId());
+                return;
+            }
+
+            User seller = product.getSeller();
+            if (seller == null) {
+                log.warn("❌ Seller not found for product: {}", product.getProductId());
+                return;
+            }
+
             String message = String.format(
                     "Yêu cầu đấu giá sản phẩm '%s' của bạn đã được Admin duyệt. " +
                             "Phiên đấu giá sẽ bắt đầu vào lúc %s",
-                    auction.getProduct().getName(),
+                    product.getName(),
                     auction.getStartTime());
 
             NotificationRequest request = NotificationRequest.builder()
                     .userId(seller.getUserId())
                     .title("✅ Đấu giá được duyệt")
                     .message(message)
-                    .type("BID")
+                    .type("SYSTEM")
                     .category("AUCTION_APPROVED")
                     .priority("HIGH")
                     .actionUrl("auctions/" + auction.getAuctionId())
                     .actionLabel("Xem chi tiết")
                     .build();
 
-            notificationService.sendNotification(request);
-            log.info("Sent auction approved notification to seller: {}", seller.getUserId());
+            try {
+                System.out.println("🚀 Calling notificationService.sendNotification...");
+                System.out.println("   Seller userId: " + seller.getUserId());
+                System.out.println("   Category: AUCTION_APPROVED");
+
+                notificationService.sendNotification(request);
+
+                System.out.println("✅ notificationService.sendNotification completed");
+                System.out.println("================================================\n");
+                log.info("✅ Sent auction approved notification to seller: {}", seller.getUserId());
+            } catch (Exception ex) {
+                System.out.println("❌ EXCEPTION in sendNotification: " + ex.getMessage());
+                ex.printStackTrace();
+                log.error("❌ Failed to send notification to seller {}: {}", seller.getUserId(), ex.getMessage());
+            }
         } catch (Exception e) {
-            log.error("Failed to send auction approved notification", e);
+            log.error("❌ Failed in notifySellerAuctionApproved", e);
         }
     }
 
@@ -110,27 +145,48 @@ public class AuctionNotificationService {
      */
     public void notifySellerAuctionRejected(Auction auction, String rejectionReason) {
         try {
-            User seller = auction.getProduct().getSeller();
+            // ✅ FIX: Add null checks for auction, product, and seller
+            if (auction == null) {
+                log.warn("❌ Auction is null");
+                return;
+            }
+
+            Product product = auction.getProduct();
+            if (product == null) {
+                log.warn("❌ Product not found for auction: {}", auction.getAuctionId());
+                return;
+            }
+
+            User seller = product.getSeller();
+            if (seller == null) {
+                log.warn("❌ Seller not found for product: {}", product.getProductId());
+                return;
+            }
+
             String message = String.format(
                     "Yêu cầu đấu giá sản phẩm '%s' của bạn đã bị từ chối.\nLý do: %s",
-                    auction.getProduct().getName(),
+                    product.getName(),
                     rejectionReason != null ? rejectionReason : "Không có lý do");
 
             NotificationRequest request = NotificationRequest.builder()
                     .userId(seller.getUserId())
                     .title("❌ Đấu giá bị từ chối")
                     .message(message)
-                    .type("BID")
+                    .type("SYSTEM")
                     .category("AUCTION_REJECTED")
                     .priority("HIGH")
                     .actionUrl("/seller/auctions/" + auction.getAuctionId())
                     .actionLabel("Xem chi tiết")
                     .build();
 
-            notificationService.sendNotification(request);
-            log.info("Sent auction rejected notification to seller: {}", seller.getUserId());
+            try {
+                notificationService.sendNotification(request);
+                log.info("✅ Sent auction rejected notification to seller: {}", seller.getUserId());
+            } catch (Exception ex) {
+                log.error("❌ Failed to send notification to seller {}: {}", seller.getUserId(), ex.getMessage());
+            }
         } catch (Exception e) {
-            log.error("Failed to send auction rejected notification", e);
+            log.error("❌ Failed in notifySellerAuctionRejected", e);
         }
     }
 

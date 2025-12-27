@@ -106,32 +106,32 @@ public class AuctionServiceImpl implements IAuctionService {
     }
 
     // Start auction session (Admin approves)
-@Override
-public void startAuction(Long auctionId) {
-    Auction auction = auctionRepository.findById(auctionId)
-            .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
+    @Override
+    public void startAuction(Long auctionId) {
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
 
-    if (!"PENDING".equals(auction.getStatus())) {
-        throw new RuntimeException("Only PENDING auctions can be started");
-    }
-
-    try {
-        auction.setStatus("OPEN");
-        auction.setStartTime(LocalDateTime.now());
-        Auction saved = auctionRepository.save(auction);
-
-        // Notify Seller
-        if (saved.getProduct().getSeller() != null) {
-            notificationPublisher.publishAuctionStartedNotification(
-                    saved.getProduct().getSeller().getUserId(),
-                    saved.getProduct().getName(),
-                    saved.getAuctionId());
+        if (!"PENDING".equals(auction.getStatus())) {
+            throw new RuntimeException("Only PENDING auctions can be started");
         }
-        auctionRepository.save(auction);
-    } catch (Exception e) {
-        throw new RuntimeException("Failed to start auction: " + e.getMessage(), e);
+
+        try {
+            auction.setStatus("OPEN");
+            auction.setStartTime(LocalDateTime.now());
+            Auction saved = auctionRepository.save(auction);
+
+            // Notify Seller
+            if (saved.getProduct().getSeller() != null) {
+                notificationPublisher.publishAuctionStartedNotification(
+                        saved.getProduct().getSeller().getUserId(),
+                        saved.getProduct().getName(),
+                        saved.getAuctionId());
+            }
+            auctionRepository.save(auction);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start auction: " + e.getMessage(), e);
+        }
     }
-}
 
     // Close auction session (when time ends)
     @Override
@@ -140,91 +140,92 @@ public void startAuction(Long auctionId) {
             Auction auction = auctionRepository.findById(auctionId)
                     .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
 
-        if (!"OPEN".equals(auction.getStatus()))
-            throw new RuntimeException("Auction must be OPEN to close");
+            if (!"OPEN".equals(auction.getStatus()))
+                throw new RuntimeException("Auction must be OPEN to close");
 
-        auction.setStatus("CLOSED");
-        auction.setEndTime(LocalDateTime.now());
+            auction.setStatus("CLOSED");
+            auction.setEndTime(LocalDateTime.now());
 
-        if (!auction.getBids().isEmpty()) {
-            Bid highestBid = auction.getBids().stream()
-                    .filter(b -> Boolean.TRUE.equals(b.getIsHighest()))
-                    .findFirst()
-                    .orElse(null);
+            if (!auction.getBids().isEmpty()) {
+                Bid highestBid = auction.getBids().stream()
+                        .filter(b -> Boolean.TRUE.equals(b.getIsHighest()))
+                        .findFirst()
+                        .orElse(null);
 
-            if (highestBid != null) {
-                User winner = highestBid.getBidder();
-                auction.setWinner(winner);
+                if (highestBid != null) {
+                    User winner = highestBid.getBidder();
+                    auction.setWinner(winner);
 
-                User seller = auction.getProduct().getSeller();
+                    User seller = auction.getProduct().getSeller();
 
-                // 🆕 Create transaction via service (sends PAYMENT_DUE & PAYMENT_PENDING notifications)
-                try {
-                    transactionService.createTransactionAfterAuction(
-                            auction,
-                            winner,
-                            seller,
-                            highestBid.getBidAmount()
-                    );
-                } catch (Exception e) {
-                    log.warn("Error creating transaction: {}", e.getMessage());
-                    // Fallback: create manually without notifications
-                    TransactionAfterAuction txn = new TransactionAfterAuction();
-                    txn.setAuction(auction);
-                    txn.setSeller(seller);
-                    txn.setBuyer(winner);
-                    txn.setAmount(highestBid.getBidAmount());
-                    txn.setStatus("PENDING");
-                    transactionAfterAuctionRepository.save(txn);
-                }
-
-                // Option: update seller balance
-                seller.setBalance(seller.getBalance().add(highestBid.getBidAmount()));
-                userRepository.save(seller);
-
-                // NOTIFICATIONS: AUCTION_WON & AUCTION_LOST & SELLER_AUCTION_ENDED
-                try {
-                    // 1. Notify Seller (Auction kết thúc - thông báo kết quả)
-                    auctionNotificationService.notifySellerAuctionEnded(auction);
-                    log.info("✅ Seller auction ended notification sent");
-                    
-                    // 2. Notify Winner
-                    notificationPublisher.publishAuctionWonNotification(
-                            winner.getUserId(),
-                            auction.getProduct().getName(),
-                            highestBid.getBidAmount().doubleValue(),
-                            auction.getAuctionId());
-
-                    // 3. Notify Losers
-                    List<User> distinctBidders = auction.getBids().stream()
-                            .map(Bid::getBidder)
-                            .distinct()
-                            .filter(u -> !u.getUserId().equals(winner.getUserId()))
-                            .toList();
-
-                    for (User loser : distinctBidders) {
-                        notificationPublisher.publishAuctionLostNotification(
-                                loser.getUserId(),
-                                auction.getProduct().getName(),
-                                auction.getAuctionId());
+                    // 🆕 Create transaction via service (sends PAYMENT_DUE & PAYMENT_PENDING
+                    // notifications)
+                    try {
+                        transactionService.createTransactionAfterAuction(
+                                auction,
+                                winner,
+                                seller,
+                                highestBid.getBidAmount());
+                    } catch (Exception e) {
+                        log.warn("Error creating transaction: {}", e.getMessage());
+                        // Fallback: create manually without notifications
+                        TransactionAfterAuction txn = new TransactionAfterAuction();
+                        txn.setAuction(auction);
+                        txn.setSeller(seller);
+                        txn.setBuyer(winner);
+                        txn.setAmount(highestBid.getBidAmount());
+                        txn.setStatus("PENDING");
+                        transactionAfterAuctionRepository.save(txn);
                     }
-                } catch (Exception e) {
-                    log.warn("Error sending auction end notifications: {}", e.getMessage());
-                }
-                }
-                }
 
-                auctionRepository.save(auction);
-                } catch (Exception ex) {
-                log.error("Error closing auction {}: {}", auctionId, ex.getMessage());
-                throw new RuntimeException("Failed to close auction: " + ex.getMessage());
+                    // Option: update seller balance
+                    seller.setBalance(seller.getBalance().add(highestBid.getBidAmount()));
+                    userRepository.save(seller);
+
+                    // NOTIFICATIONS: AUCTION_WON & AUCTION_LOST & SELLER_AUCTION_ENDED
+                    try {
+                        // 1. Notify Seller (Auction kết thúc - thông báo kết quả)
+                        auctionNotificationService.notifySellerAuctionEnded(auction);
+                        log.info("Seller auction ended notification sent");
+
+                        // 2. Notify Winner
+                        notificationPublisher.publishAuctionWonNotification(
+                                winner.getUserId(),
+                                auction.getProduct().getName(),
+                                highestBid.getBidAmount().doubleValue(),
+                                auction.getAuctionId());
+
+                        // 3. Notify Losers
+                        List<User> distinctBidders = auction.getBids().stream()
+                                .map(Bid::getBidder)
+                                .distinct()
+                                .filter(u -> !u.getUserId().equals(winner.getUserId()))
+                                .toList();
+
+                        for (User loser : distinctBidders) {
+                            notificationPublisher.publishAuctionLostNotification(
+                                    loser.getUserId(),
+                                    auction.getProduct().getName(),
+                                    auction.getAuctionId());
+                        }
+                    } catch (Exception e) {
+                        log.warn("Error sending auction end notifications: {}", e.getMessage());
+                    }
                 }
-                }
+            }
+
+            auctionRepository.save(auction);
+        } catch (Exception ex) {
+            log.error("Error closing auction {}: {}", auctionId, ex.getMessage());
+            throw new RuntimeException("Failed to close auction: " + ex.getMessage());
+        }
+    }
 
     // Admin approves auction (DRAFT -> PENDING or CANCELLED)
     @Override
     public AuctionResponse approveAuction(Long auctionId, String status) {
-        Auction auction = auctionRepository.findById(auctionId)
+        // ✅ FIX: Use eager loading to load Product and Seller together
+        Auction auction = auctionRepository.findByIdWithSellerAndImages(auctionId)
                 .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
 
         if (!"DRAFT".equals(auction.getStatus())) {
@@ -244,23 +245,23 @@ public void startAuction(Long auctionId) {
             product.setStatus("approved");
             productRepository.save(product);
 
-            // 🆕 Notify Seller using AuctionNotificationService (consistent with AUCTION_PENDING_APPROVAL)
+            // ✅ Notify Seller using AuctionNotificationService (consistent with
+            // AUCTION_PENDING_APPROVAL)
             try {
                 auctionNotificationService.notifySellerAuctionApproved(auction);
                 log.info("✅ AUCTION_APPROVED notification sent to seller");
             } catch (Exception e) {
-                log.warn("⚠️ Failed to send approval notification: {}", e.getMessage());
+                log.warn("Failed to send approval notification: {}", e.getMessage());
             }
         } else if ("CANCELLED".equals(newStatus)) {
-            // 🆕 Notify Seller when auction is REJECTED
+            // Notify Seller when auction is REJECTED
             try {
                 auctionNotificationService.notifySellerAuctionRejected(auction, "Admin rejected the auction");
-                log.info("✅ Auction rejected notification sent to seller");
+                log.info("Auction rejected notification sent to seller");
             } catch (Exception e) {
-                log.warn("⚠️ Failed to send rejection notification: {}", e.getMessage());
+                log.warn("Failed to send rejection notification: {}", e.getMessage());
             }
         } else {
-            // Thay vì CANCELLED → dùng CLOSED
             auction.setStatus("CLOSED");
         }
 

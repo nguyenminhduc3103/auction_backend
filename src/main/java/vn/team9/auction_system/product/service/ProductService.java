@@ -37,6 +37,7 @@ public class ProductService implements IProductService {
     private final UserRepository userRepository;
     private final ProductMapper productMapper;
     private final AuctionRepository auctionRepository;
+    private final vn.team9.auction_system.auction.service.AuctionNotificationService auctionNotificationService;
 
     // =========================
     // CREATE
@@ -50,8 +51,7 @@ public class ProductService implements IProductService {
         product.setDeposit(null);
         product.setEstimatePrice(null);
         product.setCreatedAt(
-                product.getCreatedAt() != null ? product.getCreatedAt() : LocalDateTime.now()
-        );
+                product.getCreatedAt() != null ? product.getCreatedAt() : LocalDateTime.now());
 
         applyImages(product, request.getImages());
 
@@ -182,8 +182,7 @@ public class ProductService implements IProductService {
     private Pageable buildPageable(int page, int size) {
         return PageRequest.of(
                 Math.max(page, 0),
-                size > 0 ? size : 10
-        );
+                size > 0 ? size : 10);
     }
 
     private String normalize(String value) {
@@ -195,18 +194,48 @@ public class ProductService implements IProductService {
     // =========================
 
     private void syncAuctionStatus(Product product, String productStatus) {
+        System.out.println("\n🔍 [DEBUG] syncAuctionStatus called");
+        System.out.println("   Product ID: " + product.getProductId());
+        System.out.println("   Product Status: " + productStatus);
+
         auctionRepository.findAll().stream()
                 .filter(a -> a.getProduct() != null
                         && a.getProduct().getProductId().equals(product.getProductId())
                         && "DRAFT".equalsIgnoreCase(a.getStatus()))
                 .findFirst()
                 .ifPresent(auction -> {
+                    System.out.println("   Found DRAFT auction: " + auction.getAuctionId());
+
                     if ("approved".equalsIgnoreCase(productStatus)) {
+                        System.out.println("   ✅ Setting auction status to PENDING");
                         auction.setStatus("PENDING");
+                        auctionRepository.save(auction);
+
+                        // 🚀 SEND NOTIFICATION TO SELLER
+                        System.out.println("   🚀 Calling auctionNotificationService.notifySellerAuctionApproved");
+                        try {
+                            auctionNotificationService.notifySellerAuctionApproved(auction);
+                            System.out.println("   ✅ Notification sent successfully!");
+                        } catch (Exception e) {
+                            System.out.println("   ❌ Failed to send notification: " + e.getMessage());
+                            e.printStackTrace();
+                        }
                     } else if ("rejected".equalsIgnoreCase(productStatus)) {
+                        System.out.println("   ❌ Setting auction status to CANCELLED");
                         auction.setStatus("CANCELLED");
+                        auctionRepository.save(auction);
+
+                        // 🚀 SEND REJECTION NOTIFICATION TO SELLER
+                        System.out.println("   🚀 Calling auctionNotificationService.notifySellerAuctionRejected");
+                        try {
+                            auctionNotificationService.notifySellerAuctionRejected(auction,
+                                    "Admin đã từ chối yêu cầu đấu giá của bạn");
+                            System.out.println("   ✅ Rejection notification sent successfully!");
+                        } catch (Exception e) {
+                            System.out.println("   ❌ Failed to send rejection notification: " + e.getMessage());
+                            e.printStackTrace();
+                        }
                     }
-                    auctionRepository.save(auction);
                 });
     }
 
@@ -215,7 +244,8 @@ public class ProductService implements IProductService {
     // =========================
 
     private void applyImages(Product product, List<ImageRequest> images) {
-        if (images == null) return;
+        if (images == null)
+            return;
 
         images.forEach(img -> {
             if (img.getSecureUrl() != null && !img.getSecureUrl().isBlank()) {

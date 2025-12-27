@@ -36,25 +36,47 @@ public class NotificationService implements INotificationService {
 
     @Override
     public NotificationResponse sendNotification(NotificationRequest request) {
+        System.out.println("========================================");
+        System.out.println("🔍 [DEBUG] sendNotification called");
+        System.out.println("   userId: " + request.getUserId());
+        System.out.println("   category: " + request.getCategory());
+        System.out.println("   type: " + request.getType());
+        log.info("🔍 [DEBUG] sendNotification called - userId: {}, category: {}, type: {}",
+                request.getUserId(), request.getCategory(), request.getType());
+
         // Validate user exists
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        log.info("📌 sendNotification called:");
-        log.info("   userId: {}", request.getUserId());
-        log.info("   userRole: {}", user.getRole() != null ? user.getRole().getRoleName() : "NULL");
-        log.info("   category: {}", request.getCategory());
-        log.info("   type: {}", request.getType());
+        System.out.println("🔍 [DEBUG] User found");
+        System.out.println("   userId: " + user.getUserId());
+        System.out.println("   username: " + user.getUsername());
+        System.out.println("   role: " + (user.getRole() != null ? user.getRole().getRoleName() : "NULL"));
+        log.info("🔍 [DEBUG] User found - userId: {}, username: {}, role: {}",
+                user.getUserId(),
+                user.getUsername(),
+                user.getRole() != null ? user.getRole().getRoleName() : "NULL");
 
         // Check if notification is allowed for user's role
-        if (!isNotificationAllowedForRole(user, request.getCategory())) {
-            log.warn("❌ Notification BLOCKED for user: {}, role: {}, category: {}",
-                    request.getUserId(),
+        boolean allowed = isNotificationAllowedForRole(user, request.getCategory());
+        System.out.println("🔍 [DEBUG] isNotificationAllowedForRole result: " + allowed);
+        log.info("🔍 [DEBUG] isNotificationAllowedForRole result: {} for category: {}",
+                allowed, request.getCategory());
+
+        if (!allowed) {
+            System.out.println("❌ [DEBUG] Notification NOT ALLOWED!");
+            System.out.println("   userId: " + user.getUserId());
+            System.out.println("   role: " + (user.getRole() != null ? user.getRole().getRoleName() : "NULL"));
+            System.out.println("   category: " + request.getCategory());
+            System.out.println("========================================");
+            log.warn("❌ [DEBUG] Notification NOT ALLOWED - userId: {}, role: {}, category: {}",
+                    user.getUserId(),
                     user.getRole() != null ? user.getRole().getRoleName() : "NULL",
                     request.getCategory());
             return null;
         }
 
+        System.out.println("✅ Notification ALLOWED - proceeding to save...");
         log.info("✅ Notification ALLOWED for user: {}", request.getUserId());
 
         // Build notification entity
@@ -76,7 +98,13 @@ public class NotificationService implements INotificationService {
 
         // Save to database
         Notification saved = notificationRepository.save(notification);
-        log.info("Notification created: {} for user: {}", saved.getNotiId(), user.getUserId());
+        System.out.println("✅ [DEBUG] Notification SAVED to DB!");
+        System.out.println("   noti_id: " + saved.getNotiId());
+        System.out.println("   userId: " + user.getUserId());
+        System.out.println("   category: " + request.getCategory());
+        System.out.println("========================================");
+        log.info("✅ [DEBUG] Notification SAVED to DB - noti_id: {}, userId: {}, category: {}",
+                saved.getNotiId(), user.getUserId(), request.getCategory());
 
         // Push notification to WebSocket client in real-time
         try {
@@ -87,12 +115,25 @@ public class NotificationService implements INotificationService {
             wsMessage.put("notification", response);
             wsMessage.put("timestamp", System.currentTimeMillis());
 
+            String userIdStr = String.valueOf(user.getUserId());
+            String destination = "/queue/notifications";
+
+            System.out.println("\n🚀 [WebSocket] Sending notification:");
+            System.out.println("   userId (String): " + userIdStr);
+            System.out.println("   destination: " + destination);
+            System.out.println("   message: " + wsMessage);
+            System.out.println("   Full destination will be: /user/" + userIdStr + destination);
+
             messagingTemplate.convertAndSendToUser(
-                    String.valueOf(user.getUserId()),
-                    "/queue/notifications",
+                    userIdStr,
+                    destination,
                     wsMessage);
+
+            System.out.println("   ✅ Message sent!");
             log.info("Notification pushed to WebSocket for user: {}", user.getUserId());
         } catch (Exception e) {
+            System.out.println("   ❌ Failed to send: " + e.getMessage());
+            e.printStackTrace();
             log.warn("Failed to push notification to WebSocket (user may be offline): {}", e.getMessage());
         }
 

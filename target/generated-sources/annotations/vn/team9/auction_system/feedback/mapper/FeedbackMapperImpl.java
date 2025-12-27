@@ -6,18 +6,15 @@ import vn.team9.auction_system.common.dto.admin.UserWarningLogRequest;
 import vn.team9.auction_system.common.dto.admin.UserWarningLogResponse;
 import vn.team9.auction_system.common.dto.feedback.FeedbackRequest;
 import vn.team9.auction_system.common.dto.feedback.FeedbackResponse;
-import vn.team9.auction_system.common.dto.notification.NotificationRequest;
-import vn.team9.auction_system.common.dto.notification.NotificationResponse;
 import vn.team9.auction_system.feedback.model.Feedback;
-import vn.team9.auction_system.feedback.model.Notification;
 import vn.team9.auction_system.feedback.model.UserWarningLog;
 import vn.team9.auction_system.transaction.model.TransactionAfterAuction;
 import vn.team9.auction_system.user.model.User;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-27T11:40:36+0700",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-27T20:26:35+0700",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Oracle Corporation)"
 )
 @Component
 public class FeedbackMapperImpl implements FeedbackMapper {
@@ -30,8 +27,8 @@ public class FeedbackMapperImpl implements FeedbackMapper {
 
         Feedback feedback = new Feedback();
 
-        feedback.setComment( request.getComment() );
         feedback.setRating( request.getRating() );
+        feedback.setComment( request.getComment() );
 
         return feedback;
     }
@@ -46,44 +43,14 @@ public class FeedbackMapperImpl implements FeedbackMapper {
 
         feedbackResponse.setUserId( entityUserUserId( entity ) );
         feedbackResponse.setUsername( entityUserUsername( entity ) );
-        feedbackResponse.setComment( entity.getComment() );
-        feedbackResponse.setCreatedAt( entity.getCreatedAt() );
         feedbackResponse.setFeedbackId( entity.getFeedbackId() );
         if ( entity.getRating() != null ) {
             feedbackResponse.setRating( entity.getRating() );
         }
+        feedbackResponse.setComment( entity.getComment() );
+        feedbackResponse.setCreatedAt( entity.getCreatedAt() );
 
         return feedbackResponse;
-    }
-
-    @Override
-    public Notification toEntity(NotificationRequest request) {
-        if ( request == null ) {
-            return null;
-        }
-
-        Notification notification = new Notification();
-
-        notification.setMessage( request.getMessage() );
-        notification.setType( request.getType() );
-
-        return notification;
-    }
-
-    @Override
-    public NotificationResponse toResponse(Notification entity) {
-        if ( entity == null ) {
-            return null;
-        }
-
-        NotificationResponse notificationResponse = new NotificationResponse();
-
-        notificationResponse.setUserId( entityUserUserId1( entity ) );
-        notificationResponse.setCreatedAt( entity.getCreatedAt() );
-        notificationResponse.setMessage( entity.getMessage() );
-        notificationResponse.setType( entity.getType() );
-
-        return notificationResponse;
     }
 
     @Override
@@ -94,9 +61,9 @@ public class FeedbackMapperImpl implements FeedbackMapper {
 
         UserWarningLog userWarningLog = new UserWarningLog();
 
-        userWarningLog.setDescription( request.getDescription() );
-        userWarningLog.setStatus( request.getStatus() );
         userWarningLog.setType( request.getType() );
+        userWarningLog.setStatus( request.getStatus() );
+        userWarningLog.setDescription( request.getDescription() );
         userWarningLog.setViolationCount( request.getViolationCount() );
 
         return userWarningLog;
@@ -110,14 +77,14 @@ public class FeedbackMapperImpl implements FeedbackMapper {
 
         UserWarningLogResponse userWarningLogResponse = new UserWarningLogResponse();
 
-        userWarningLogResponse.setUserId( entityUserUserId2( entity ) );
+        userWarningLogResponse.setUserId( entityUserUserId1( entity ) );
         userWarningLogResponse.setTransactionId( entityTransactionTransactionId( entity ) );
-        userWarningLogResponse.setCreatedAt( entity.getCreatedAt() );
-        userWarningLogResponse.setDescription( entity.getDescription() );
         userWarningLogResponse.setLogId( entity.getLogId() );
-        userWarningLogResponse.setStatus( entity.getStatus() );
         userWarningLogResponse.setType( entity.getType() );
+        userWarningLogResponse.setStatus( entity.getStatus() );
+        userWarningLogResponse.setDescription( entity.getDescription() );
         userWarningLogResponse.setViolationCount( entity.getViolationCount() );
+        userWarningLogResponse.setCreatedAt( entity.getCreatedAt() );
 
         return userWarningLogResponse;
     }
@@ -152,22 +119,7 @@ public class FeedbackMapperImpl implements FeedbackMapper {
         return username;
     }
 
-    private Long entityUserUserId1(Notification notification) {
-        if ( notification == null ) {
-            return null;
-        }
-        User user = notification.getUser();
-        if ( user == null ) {
-            return null;
-        }
-        Long userId = user.getUserId();
-        if ( userId == null ) {
-            return null;
-        }
-        return userId;
-    }
-
-    private Long entityUserUserId2(UserWarningLog userWarningLog) {
+    private Long entityUserUserId1(UserWarningLog userWarningLog) {
         if ( userWarningLog == null ) {
             return null;
         }

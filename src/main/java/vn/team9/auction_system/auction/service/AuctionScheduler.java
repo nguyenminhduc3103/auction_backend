@@ -44,7 +44,7 @@ public class AuctionScheduler {
                     LocalDateTime endTime = auction.getEndTime();
                     if (endTime != null) {
                         long minutesLeft = ChronoUnit.MINUTES.between(now, endTime);
-                        
+
                         // Notify when 5 minutes or less left (>= 5 and < 6)
                         if (minutesLeft >= 5 && minutesLeft < 6) {
                             try {
@@ -55,16 +55,30 @@ public class AuctionScheduler {
                                             .distinct()
                                             .forEach(userId -> {
                                                 try {
-                                                    notificationPublisher.publishAuctionEndingSoonNotification(
-                                                        userId,
-                                                        auction.getProduct().getName(),
-                                                        auction.getAuctionId()
-                                                    );
+                                                    // ✅ FIX: Check if notification already sent to avoid duplicates
+                                                    boolean alreadySent = notificationPublisher.hasNotificationBeenSent(
+                                                            userId,
+                                                            "AUCTION_ENDING_SOON",
+                                                            auction.getAuctionId());
+
+                                                    if (!alreadySent) {
+                                                        notificationPublisher.publishAuctionEndingSoonNotification(
+                                                                userId,
+                                                                auction.getProduct().getName(),
+                                                                auction.getAuctionId());
+                                                        log.info("✅ Sent AUCTION_ENDING_SOON to user: {}", userId);
+                                                    } else {
+                                                        log.debug(
+                                                                "⏭️ Skipped duplicate AUCTION_ENDING_SOON for user: {}",
+                                                                userId);
+                                                    }
                                                 } catch (Exception e) {
-                                                    log.warn("Failed to send ending soon notification to user {}: {}", userId, e.getMessage());
+                                                    log.warn("Failed to send ending soon notification to user {}: {}",
+                                                            userId, e.getMessage());
                                                 }
                                             });
-                                    log.info("✅ AUCTION_ENDING_SOON notifications sent for auction: {}", auction.getAuctionId());
+                                    log.info("✅ AUCTION_ENDING_SOON notifications processed for auction: {}",
+                                            auction.getAuctionId());
                                 }
                             } catch (Exception e) {
                                 log.warn("Error sending ending soon notifications: {}", e.getMessage());
