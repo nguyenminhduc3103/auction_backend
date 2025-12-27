@@ -1,6 +1,7 @@
 package vn.team9.auction_system.auction.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ import vn.team9.auction_system.transaction.model.TransactionAfterAuction;
 import vn.team9.auction_system.transaction.repository.TransactionAfterAuctionRepository;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
+import vn.team9.auction_system.feedback.event.NotificationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,6 +37,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class AuctionServiceImpl implements IAuctionService {
 
     private final AuctionRepository auctionRepository;
@@ -42,6 +45,8 @@ public class AuctionServiceImpl implements IAuctionService {
     private final UserRepository userRepository;
     private final TransactionAfterAuctionRepository transactionAfterAuctionRepository;
     private final BidRepository bidRepository;
+    private final AuctionNotificationService auctionNotificationService;
+    private final NotificationEventPublisher notificationPublisher;
 
     // Create new auction session (seller request)
     @Override
@@ -69,6 +74,10 @@ public class AuctionServiceImpl implements IAuctionService {
         productRepository.save(product);
 
         Auction saved = auctionRepository.save(auction);
+
+        // Gửi thông báo yêu cầu xét duyệt đến Admin
+        auctionNotificationService.notifyAdminAuctionPendingReview(saved);
+
         return mapToResponse(saved);
     }
 
@@ -105,7 +114,15 @@ public class AuctionServiceImpl implements IAuctionService {
 
         auction.setStatus("OPEN");
         auction.setStartTime(LocalDateTime.now());
-        auctionRepository.save(auction);
+        Auction saved = auctionRepository.save(auction);
+
+        // Notify Seller
+        if (saved.getProduct().getSeller() != null) {
+            notificationPublisher.publishAuctionStartedNotification(
+                    saved.getProduct().getSeller().getUserId(),
+                    saved.getProduct().getName(),
+                    saved.getAuctionId());
+        }
     }
 
     // Close auction session (when time ends)
@@ -143,6 +160,32 @@ public class AuctionServiceImpl implements IAuctionService {
                 User seller = auction.getProduct().getSeller();
                 seller.setBalance(seller.getBalance().add(highestBid.getBidAmount()));
                 userRepository.save(seller);
+
+                // NOTIFICATIONS
+                try {
+                    // 1. Notify Winner
+                    notificationPublisher.publishAuctionWonNotification(
+                            winner.getUserId(),
+                            auction.getProduct().getName(),
+                            highestBid.getBidAmount().doubleValue(),
+                            auction.getAuctionId());
+
+                    // 2. Notify Losers
+                    List<User> distinctBidders = auction.getBids().stream()
+                            .map(Bid::getBidder)
+                            .distinct()
+                            .filter(u -> !u.getUserId().equals(winner.getUserId()))
+                            .toList();
+
+                    for (User loser : distinctBidders) {
+                        notificationPublisher.publishAuctionLostNotification(
+                                loser.getUserId(),
+                                auction.getProduct().getName(),
+                                auction.getAuctionId());
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error sending auction end notifications: " + e.getMessage());
+                }
             }
         }
 
@@ -166,11 +209,22 @@ public class AuctionServiceImpl implements IAuctionService {
 
         auction.setStatus(newStatus);
 
-        // If auction approved, change product status to approved
         if ("PENDING".equals(newStatus)) {
             Product product = auction.getProduct();
             product.setStatus("approved");
             productRepository.save(product);
+
+            // Notify Seller
+            if (product.getSeller() != null) {
+                log.info("🔔 Attempting to send approval notification to seller: {}", product.getSeller().getUserId());
+                notificationPublisher.publishAuctionApprovedNotification(
+                        product.getSeller().getUserId(),
+                        product.getName(),
+                        auction.getAuctionId());
+                log.info("✅ Approval notification sent");
+            } else {
+                log.warn("⚠️ No seller found for product: {}", product.getName());
+            }
         }
 
         Auction saved = auctionRepository.save(auction);
