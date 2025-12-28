@@ -7,7 +7,7 @@ import vn.team9.auction_system.user_report.model.UserReport;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-28T01:15:30+0700",
+    date = "2025-12-28T01:31:49+0700",
     comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 public class UserReportMapperImpl implements UserReportMapper {
