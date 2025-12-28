@@ -1,0 +1,67 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< vn.team9:auction-system >-----------------------
+[INFO] Building auction-system 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.4.1:clean (default-clean) @ auction-system ---
+[INFO] Deleting C:\code\bid\IT4409-BidSphere\03_Development\auction-system-backend\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ auction-system ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ auction-system ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 160 source files with javac [debug release 21] to target\classes
+[INFO] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/config/ApplicationConfig.java: C:\code\bid\IT4409-BidSphere\03_Development\auction-system-backend\src\main\java\vn\team9\auction_system\config\ApplicationConfig.java uses or overrides a deprecated API.
+[INFO] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/config/ApplicationConfig.java: Recompile with -Xlint:deprecation for details.
+[INFO] -------------------------------------------------------------
+[WARNING] COMPILATION WARNING : 
+[INFO] -------------------------------------------------------------
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/common/dto/auction/AuctionRequest.java:[8,1] Generating equals/hashCode implementation but without a call to superclass, even though this class does not extend java.lang.Object. If this is intentional, add '@EqualsAndHashCode(callSuper=false)' to your type.
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/auction/mapper/AuctionMapper.java:[16,13] Unmapped target properties: "auctionId, product, status, highestCurrentPrice, bidStepAmount, winner, bids".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/auction/mapper/AuctionMapper.java:[20,21] Unmapped target properties: "success, message, timestamp, highestBid, productName, productImageUrl, productImageUrls, productDescription, startPrice, estimatePrice, categoryName, sellerId, sellerName, totalBidders, totalBids".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/auction/mapper/AuctionMapper.java:[23,9] Unmapped target properties: "bidId, auction, bidder, createdAt, maxAutobidAmount, isAuto, isHighest".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/auction/mapper/AuctionMapper.java:[28,17] Unmapped target properties: "id, maxAutoBidAmount, message, success".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/user_report/mapper/UserReportMapper.java:[14,16] Unmapped target properties: "id, createdAt".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/user_report/mapper/UserReportMapper.java:[16,24] Unmapped target properties: "success, message, timestamp".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/user/mapper/UserMapper.java:[13,18] Unmapped target property: "reason".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/feedback/mapper/FeedbackMapper.java:[16,14] Unmapped target properties: "feedbackId, auction, user, createdAt".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/feedback/mapper/FeedbackMapper.java:[21,22] Unmapped target properties: "success, message, timestamp, productId".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/feedback/mapper/FeedbackMapper.java:[24,20] Unmapped target properties: "logId, user, transaction, createdAt".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/transaction/mapper/TransactionMapper.java:[15,71] Unmapped target properties: "transactionId, auction, buyer, seller, status, updatedAt".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/transaction/mapper/TransactionMapper.java:[21,37] Unmapped target properties: "id, auctionId, productId, productName, productImageUrl, buyerName, buyerUsername".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/transaction/mapper/TransactionMapper.java:[24,24] Unmapped target properties: "transactionId, user, status, createdAt".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/transaction/mapper/TransactionMapper.java:[29,32] Unmapped target property: "id".
+[WARNING] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/auction/service/AuctionServiceImpl.java:[302,52] <T>where(org.springframework.data.jpa.domain.Specification<T>) in org.springframework.data.jpa.domain.Specification has been deprecated and marked for removal
+[INFO] 16 warnings 
+[INFO] -------------------------------------------------------------
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/feedback/controller/UserWarningLogController.java:[48,17] cannot find symbol
+  symbol:   method warnPendingTransactionsOver36h()
+  location: variable impl of type vn.team9.auction_system.feedback.service.UserWarningLogImpl
+[INFO] 1 error
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  5.113 s
+[INFO] Finished at: 2025-12-28T13:09:09+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project auction-system: Compilation failure
+[ERROR] /C:/code/bid/IT4409-BidSphere/03_Development/auction-system-backend/src/main/java/vn/team9/auction_system/feedback/controller/UserWarningLogController.java:[48,17] cannot find symbol
+[ERROR]   symbol:   method warnPendingTransactionsOver36h()
+[ERROR]   location: variable impl of type vn.team9.auction_system.feedback.service.UserWarningLogImpl
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+

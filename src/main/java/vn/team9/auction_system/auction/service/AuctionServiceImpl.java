@@ -1,6 +1,7 @@
 package vn.team9.auction_system.auction.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,8 @@ import vn.team9.auction_system.transaction.model.TransactionAfterAuction;
 import vn.team9.auction_system.transaction.repository.TransactionAfterAuctionRepository;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
+import vn.team9.auction_system.feedback.event.NotificationEventPublisher;
+import vn.team9.auction_system.transaction.service.TransactionAfterAuctionServiceImpl;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,6 +38,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class AuctionServiceImpl implements IAuctionService {
 
     private final AuctionRepository auctionRepository;
@@ -42,37 +46,44 @@ public class AuctionServiceImpl implements IAuctionService {
     private final UserRepository userRepository;
     private final TransactionAfterAuctionRepository transactionAfterAuctionRepository;
     private final BidRepository bidRepository;
+    private final AuctionNotificationService auctionNotificationService;
+    private final NotificationEventPublisher notificationPublisher;
+    private final TransactionAfterAuctionServiceImpl transactionService;
 
-    // Tạo phiên đấu giá mới (seller request)
+    // Create new auction session (seller request)
     @Override
     public AuctionResponse createAuction(AuctionRequest request) {
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + request.getProductId()));
 
-        // Kiểm tra product status phải là draft hoặc rejected
+        // Check product status must be draft or rejected
         String productStatus = product.getStatus() != null ? product.getStatus().toLowerCase() : "";
         if (!productStatus.equals("draft") && !productStatus.equals("rejected")) {
             throw new RuntimeException(
-                    "Chỉ sản phẩm ở trạng thái 'draft' hoặc 'rejected' mới có thể tạo yêu cầu đấu giá.");
+                    "Only products in 'draft' or 'rejected' status can create auction requests.");
         }
 
         Auction auction = new Auction();
         auction.setProduct(product);
         auction.setStartTime(request.getStartTime());
         auction.setEndTime(request.getEndTime());
-        auction.setStatus("DRAFT"); // Chờ admin duyệt
+        auction.setStatus("DRAFT"); // Waiting for admin approval
         auction.setHighestCurrentPrice(BigDecimal.ZERO);
-        auction.setBidStepAmount(BigDecimal.valueOf(10000));// default step amount
+        auction.setBidStepAmount(BigDecimal.valueOf(10000)); // Default step amount
 
-        // Đổi product status sang PENDING (chờ admin duyệt)
+        // Change product status to PENDING (waiting for admin approval)
         product.setStatus("pending");
         productRepository.save(product);
 
         Auction saved = auctionRepository.save(auction);
+
+        // Gửi thông báo yêu cầu xét duyệt đến Admin
+        auctionNotificationService.notifyAdminAuctionPendingReview(saved);
+
         return mapToResponse(saved);
     }
 
-    // Cập nhật thông tin phiên đấu giá
+    // Update auction session information
     @Override
     public AuctionResponse updateAuction(Long id, AuctionRequest request) {
         Auction auction = auctionRepository.findById(id)
@@ -86,7 +97,7 @@ public class AuctionServiceImpl implements IAuctionService {
         return mapToResponse(updated);
     }
 
-    // Xoá phiên đấu giá
+    // Delete auction session
     @Override
     public void deleteAuction(Long id) {
         Auction auction = auctionRepository.findById(id)
@@ -94,68 +105,133 @@ public class AuctionServiceImpl implements IAuctionService {
         auctionRepository.delete(auction);
     }
 
-    // Bắt đầu phiên đấu giá (Admin duyệt)
+    // Start auction session (Admin approves)
     @Override
     public void startAuction(Long auctionId) {
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
 
-        if (!"PENDING".equals(auction.getStatus()))
+        String currentStatus = auction.getStatus() != null ? auction.getStatus().toUpperCase() : "";
+        if (!"PENDING".equals(currentStatus)) {
             throw new RuntimeException("Only PENDING auctions can be started");
-
-        auction.setStatus("OPEN");
-        auction.setStartTime(LocalDateTime.now());
-        auctionRepository.save(auction);
-    }
-
-    // Đóng phiên đấu giá (khi hết thời gian)
-    @Override
-    public void closeAuction(Long auctionId) {
-        Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
-
-        if (!"OPEN".equals(auction.getStatus()))
-            throw new RuntimeException("Auction must be OPEN to close");
-
-        auction.setStatus("CLOSED");
-        auction.setEndTime(LocalDateTime.now());
-
-        if (!auction.getBids().isEmpty()) {
-            Bid highestBid = auction.getBids().stream()
-                    .filter(b -> Boolean.TRUE.equals(b.getIsHighest()))
-                    .findFirst()
-                    .orElse(null);
-
-            if (highestBid != null) {
-                User winner = highestBid.getBidder();
-                auction.setWinner(winner);
-
-                // Tạo TransactionAfterAuction
-                TransactionAfterAuction txn = new TransactionAfterAuction();
-                txn.setAuction(auction);
-                txn.setSeller(auction.getProduct().getSeller());
-                txn.setBuyer(winner);
-                txn.setAmount(highestBid.getBidAmount());
-                txn.setStatus("PENDING"); // hoặc SUCCESS nếu thanh toán luôn
-                transactionAfterAuctionRepository.save(txn);
-
-                // Option: cập nhật balance
-                User seller = auction.getProduct().getSeller();
-                seller.setBalance(seller.getBalance().add(highestBid.getBidAmount()));
-                userRepository.save(seller);
-            }
         }
 
-        auctionRepository.save(auction);
+        try {
+            auction.setStatus("OPEN");
+            auction.setStartTime(LocalDateTime.now());
+            Auction saved = auctionRepository.save(auction);
+
+            // Notify Seller
+            if (saved.getProduct().getSeller() != null) {
+                notificationPublisher.publishAuctionStartedNotification(
+                        saved.getProduct().getSeller().getUserId(),
+                        saved.getProduct().getName(),
+                        saved.getAuctionId());
+            }
+            auctionRepository.save(auction);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start auction: " + e.getMessage(), e);
+        }
     }
 
-    // Admin duyệt auction (DRAFT -> PENDING hoặc CANCELLED)
+    // Close auction session (when time ends)
+    @Override
+    public void closeAuction(Long auctionId) {
+        try {
+            Auction auction = auctionRepository.findById(auctionId)
+                    .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
+
+            String currentStatus = auction.getStatus() != null ? auction.getStatus().toUpperCase() : "";
+            if (!"OPEN".equals(currentStatus))
+                throw new RuntimeException("Auction must be OPEN to close");
+
+            auction.setStatus("CLOSED");
+            auction.setEndTime(LocalDateTime.now());
+
+            if (!auction.getBids().isEmpty()) {
+                Bid highestBid = auction.getBids().stream()
+                        .filter(b -> Boolean.TRUE.equals(b.getIsHighest()))
+                        .findFirst()
+                        .orElse(null);
+
+                if (highestBid != null) {
+                    User winner = highestBid.getBidder();
+                    auction.setWinner(winner);
+
+                    User seller = auction.getProduct().getSeller();
+
+                    // 🆕 Create transaction via service (sends PAYMENT_DUE & PAYMENT_PENDING
+                    // notifications)
+                    try {
+                        transactionService.createTransactionAfterAuction(
+                                auction,
+                                winner,
+                                seller,
+                                highestBid.getBidAmount());
+                    } catch (Exception e) {
+                        log.warn("Error creating transaction: {}", e.getMessage());
+                        // Fallback: create manually without notifications
+                        TransactionAfterAuction txn = new TransactionAfterAuction();
+                        txn.setAuction(auction);
+                        txn.setSeller(seller);
+                        txn.setBuyer(winner);
+                        txn.setAmount(highestBid.getBidAmount());
+                        txn.setStatus("PENDING");
+                        transactionAfterAuctionRepository.save(txn);
+                    }
+
+                    // Option: update seller balance
+                    seller.setBalance(seller.getBalance().add(highestBid.getBidAmount()));
+                    userRepository.save(seller);
+
+                    // NOTIFICATIONS: AUCTION_WON & AUCTION_LOST & SELLER_AUCTION_ENDED
+                    try {
+                        // 1. Notify Seller (Auction kết thúc - thông báo kết quả)
+                        auctionNotificationService.notifySellerAuctionEnded(auction);
+                        log.info("Seller auction ended notification sent");
+
+                        // 2. Notify Winner
+                        notificationPublisher.publishAuctionWonNotification(
+                                winner.getUserId(),
+                                auction.getProduct().getName(),
+                                highestBid.getBidAmount().doubleValue(),
+                                auction.getAuctionId());
+
+                        // 3. Notify Losers
+                        List<User> distinctBidders = auction.getBids().stream()
+                                .map(Bid::getBidder)
+                                .distinct()
+                                .filter(u -> !u.getUserId().equals(winner.getUserId()))
+                                .toList();
+
+                        for (User loser : distinctBidders) {
+                            notificationPublisher.publishAuctionLostNotification(
+                                    loser.getUserId(),
+                                    auction.getProduct().getName(),
+                                    auction.getAuctionId());
+                        }
+                    } catch (Exception e) {
+                        log.warn("Error sending auction end notifications: {}", e.getMessage());
+                    }
+                }
+            }
+
+            auctionRepository.save(auction);
+        } catch (Exception ex) {
+            log.error("Error closing auction {}: {}", auctionId, ex.getMessage());
+            throw new RuntimeException("Failed to close auction: " + ex.getMessage());
+        }
+    }
+
+    // Admin approves auction (DRAFT -> PENDING or CANCELLED)
     @Override
     public AuctionResponse approveAuction(Long auctionId, String status) {
-        Auction auction = auctionRepository.findById(auctionId)
+        // ✅ FIX: Use eager loading to load Product and Seller together
+        Auction auction = auctionRepository.findByIdWithSellerAndImages(auctionId)
                 .orElseThrow(() -> new RuntimeException("Auction not found with id: " + auctionId));
 
-        if (!"DRAFT".equals(auction.getStatus())) {
+        String auctionStatus = auction.getStatus() != null ? auction.getStatus().toUpperCase() : "";
+        if (!"DRAFT".equals(auctionStatus)) {
             throw new RuntimeException("Only DRAFT auctions can be approved or rejected");
         }
 
@@ -166,18 +242,37 @@ public class AuctionServiceImpl implements IAuctionService {
 
         auction.setStatus(newStatus);
 
-        // Nếu approve auction thì đổi product status sang approved
         if ("PENDING".equals(newStatus)) {
+            auction.setStatus("PENDING");
             Product product = auction.getProduct();
             product.setStatus("approved");
             productRepository.save(product);
+
+            // ✅ Notify Seller using AuctionNotificationService (consistent with
+            // AUCTION_PENDING_APPROVAL)
+            try {
+                auctionNotificationService.notifySellerAuctionApproved(auction);
+                log.info("✅ AUCTION_APPROVED notification sent to seller");
+            } catch (Exception e) {
+                log.warn("Failed to send approval notification: {}", e.getMessage());
+            }
+        } else if ("CANCELLED".equals(newStatus)) {
+            // Notify Seller when auction is REJECTED
+            try {
+                auctionNotificationService.notifySellerAuctionRejected(auction, "Admin rejected the auction");
+                log.info("Auction rejected notification sent to seller");
+            } catch (Exception e) {
+                log.warn("Failed to send rejection notification: {}", e.getMessage());
+            }
+        } else {
+            auction.setStatus("CLOSED");
         }
 
         Auction saved = auctionRepository.save(auction);
         return mapToResponse(saved);
     }
 
-    // Lấy thông tin phiên đấu giá theo ID
+    // Get auction information by ID
     @Override
     @Transactional(readOnly = true)
     public AuctionResponse getAuctionById(Long id) {
@@ -225,8 +320,7 @@ public class AuctionServiceImpl implements IAuctionService {
             Long userId,
             int page,
             int size,
-            String sort
-    ) {
+            String sort) {
         Pageable pageable = PageRequest.of(
                 page,
                 size,
@@ -234,19 +328,14 @@ public class AuctionServiceImpl implements IAuctionService {
                         sort.split(",")[1].equalsIgnoreCase("asc")
                                 ? Sort.Direction.ASC
                                 : Sort.Direction.DESC,
-                        sort.split(",")[0]
-                )
-        );
+                        sort.split(",")[0]));
 
-        Page<Auction> auctions =
-                auctionRepository.findParticipatingOpenAuctions(userId, pageable);
+        Page<Auction> auctions = auctionRepository.findParticipatingOpenAuctions(userId, pageable);
 
         return auctions.map(this::mapToResponse);
     }
 
-
-    //map Entity → DTO
-    // map Entity → DTO
+    // Map Entity → DTO
     private AuctionResponse mapToResponse(Auction auction) {
         AuctionResponse res = new AuctionResponse();
 
@@ -269,13 +358,13 @@ public class AuctionServiceImpl implements IAuctionService {
 
         // Images
         if (product.getImages() != null && !product.getImages().isEmpty()) {
-            // list
+            // List of all images
             List<String> urls = product.getImages().stream()
                     .map(Image::getUrl)
                     .collect(Collectors.toList());
             res.setProductImageUrls(urls);
 
-            // thumbnail
+            // Thumbnail (primary image)
             res.setProductImageUrl(
                     product.getImages().stream()
                             .filter(img -> Boolean.TRUE.equals(img.getIsThumbnail()))
@@ -291,18 +380,35 @@ public class AuctionServiceImpl implements IAuctionService {
             res.setSellerName(seller.getFullName());
         }
 
-        // totalBids
-        res.setTotalBidders(bidRepository.countDistinctBidders(auction.getAuctionId()));
+        // Bid counts
+        Long auctionId = auction.getAuctionId();
+        res.setTotalBidders(bidRepository.countDistinctBidders(auctionId));
+        res.setTotalBids(bidRepository.countByAuction_AuctionId(auctionId));
         return res;
     }
 
-    // Lấy danh sách auctions của seller hiện tại (từ token)
+    // Get auction list of current seller (from token)
     @Override
     public List<AuctionResponse> getAuctionsByCurrentSeller() {
         User currentUser = getCurrentUser();
         Long sellerId = currentUser.getUserId();
 
-        // Tìm tất cả auctions mà product thuộc về seller này
+        // Find all auctions where product belongs to this seller
+        List<Auction> allAuctions = auctionRepository.findAll();
+        List<Auction> sellerAuctions = allAuctions.stream()
+                .filter(a -> a.getProduct() != null
+                        && a.getProduct().getSeller() != null
+                        && sellerId.equals(a.getProduct().getSeller().getUserId()))
+                .toList();
+
+        return sellerAuctions.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    // Get auctions by seller ID (public - for seller profile)
+    @Override
+    public List<AuctionResponse> getAuctionsBySellerId(Long sellerId) {
         List<Auction> allAuctions = auctionRepository.findAll();
         List<Auction> sellerAuctions = allAuctions.stream()
                 .filter(a -> a.getProduct() != null
@@ -315,11 +421,12 @@ public class AuctionServiceImpl implements IAuctionService {
                 .collect(Collectors.toList());
     }
 
-    // Helper: lấy user hiện tại từ SecurityContext
+    // Helper: get current user from SecurityContext
+
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("Vui lòng đăng nhập");
+            throw new RuntimeException("Please log in");
         }
 
         String email;
@@ -329,10 +436,10 @@ public class AuctionServiceImpl implements IAuctionService {
         } else if (principal instanceof String s) {
             email = s;
         } else {
-            throw new RuntimeException("Không thể xác định người dùng hiện tại");
+            throw new RuntimeException("Cannot identify current user");
         }
 
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với email: " + email));
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 }

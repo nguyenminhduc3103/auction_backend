@@ -6,7 +6,6 @@ import vn.team9.auction_system.common.dto.account.AccountTransactionResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 public interface IAccountTransactionService {
     AccountTransactionResponse deposit(AccountTransactionRequest request);

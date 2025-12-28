@@ -18,14 +18,14 @@ public class AuctionController {
 
     private final IAuctionService auctionService;
 
-    // Tạo phiên đấu giá
+    // Create auctions
     @PostMapping
     @PreAuthorize("hasAuthority('POST:/api/auctions')")
     public ResponseEntity<AuctionResponse> createAuction(@RequestBody AuctionRequest request) {
         return ResponseEntity.ok(auctionService.createAuction(request));
     }
 
-    // Lấy danh sách phiên đấu giá theo param
+    // get auctions by params
     @GetMapping
     public ResponseEntity<?> getAuctions(
             @RequestParam(required = false) String status,
@@ -50,20 +50,20 @@ public class AuctionController {
                         sort));
     }
 
-    // Lấy chi tiết 1 phiên đấu giá
+    // get auctions details
     @GetMapping("/{id}")
     public ResponseEntity<AuctionResponse> getAuctionById(@PathVariable Long id) {
         return ResponseEntity.ok(auctionService.getAuctionById(id));
     }
 
-    // Cập nhật đấu giá
+    // update auctions
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('PUT:/api/auctions/{id}')")
     public ResponseEntity<AuctionResponse> updateAuction(@PathVariable Long id, @RequestBody AuctionRequest request) {
         return ResponseEntity.ok(auctionService.updateAuction(id, request));
     }
 
-    // Xóa đấu giá
+    // delete auctions
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('DELETE:/api/auctions/{id}')")
     public ResponseEntity<Void> deleteAuction(@PathVariable Long id) {
@@ -71,7 +71,7 @@ public class AuctionController {
         return ResponseEntity.noContent().build();
     }
 
-    // Bắt đầu đấu giá (OPEN)
+    // Open auctions by manual (admin)
     @PostMapping("/{auctionId}/start")
     @PreAuthorize("hasAuthority('POST:/api/auctions/{auctionId}/start')")
     public ResponseEntity<Void> startAuction(@PathVariable Long auctionId) {
@@ -79,7 +79,7 @@ public class AuctionController {
         return ResponseEntity.ok().build();
     }
 
-    // Đóng đấu giá (CLOSE)
+    // Close auctions by manual (admin)
     @PostMapping("/{auctionId}/close")
     @PreAuthorize("hasAuthority('POST:/api/auctions/{auctionId}/close')")
     public ResponseEntity<Void> closeAuction(@PathVariable Long auctionId) {
@@ -87,7 +87,7 @@ public class AuctionController {
         return ResponseEntity.ok().build();
     }
 
-    // Admin duyệt auction (DRAFT -> PENDING hoặc CANCELLED)
+    // Admin approve Draft -> Pending/Cancel
     @PutMapping("/{auctionId}/approve")
     @PreAuthorize("hasAuthority('PUT:/api/auctions/{auctionId}/approve')")
     public ResponseEntity<AuctionResponse> approveAuction(
@@ -96,11 +96,17 @@ public class AuctionController {
         return ResponseEntity.ok(auctionService.approveAuction(auctionId, status));
     }
 
-    // Lấy danh sách auctions của seller hiện tại (từ token)
+    // Get auctions from seller
     @GetMapping("/me")
     @PreAuthorize("hasAuthority('GET:/api/auctions/me')")
     public ResponseEntity<?> getMyAuctions() {
         return ResponseEntity.ok(auctionService.getAuctionsByCurrentSeller());
+    }
+
+    // Lấy danh sách auctions của một seller cụ thể (public - cho profile)
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<?> getAuctionsBySellerId(@PathVariable Long sellerId) {
+        return ResponseEntity.ok(auctionService.getAuctionsBySellerId(sellerId));
     }
 
 }

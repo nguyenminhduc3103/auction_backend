@@ -7,11 +7,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import vn.team9.auction_system.auth.repository.RoleRepository;
 import vn.team9.auction_system.common.dto.user.ChangePasswordRequest;
 import vn.team9.auction_system.common.dto.user.UpdateUserDTO;
 import vn.team9.auction_system.common.dto.user.UserResponse;
 import vn.team9.auction_system.common.handler.BusinessException;
 import vn.team9.auction_system.user.mapper.UserMapper;
+import vn.team9.auction_system.user.model.Role;
 import vn.team9.auction_system.user.model.User;
 import vn.team9.auction_system.user.repository.UserRepository;
 
@@ -22,6 +24,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final RoleRepository roleRepository;
 
     @Transactional
     public UserResponse getByEmail(String email) {
@@ -43,9 +46,12 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với email: " + email));
 
-        if (request.getFullName() != null) user.setFullName(request.getFullName());
-        if (request.getPhone() != null) user.setPhone(request.getPhone());
-        if (request.getGender() != null) user.setGender(request.getGender());
+        if (request.getFullName() != null)
+            user.setFullName(request.getFullName());
+        if (request.getPhone() != null)
+            user.setPhone(request.getPhone());
+        if (request.getGender() != null)
+            user.setGender(request.getGender());
 
         userRepository.save(user);
         return userMapper.toResponse(user);
@@ -57,9 +63,7 @@ public class UserService {
     public void changePasswordByEmail(String email, ChangePasswordRequest req) {
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new BusinessException("Không tìm thấy người dùng")
-                );
+                .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng"));
 
         if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPasswordHash())) {
             throw new BusinessException("Mật khẩu hiện tại không đúng");
@@ -73,7 +77,6 @@ public class UserService {
         userRepository.save(user);
     }
 
-
     public void updateAvatarUrl(Long userId, String avatarUrl) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -81,5 +84,25 @@ public class UserService {
         userRepository.save(user);
     }
 
+    // Upgrade BIDDER to SELLER role
+    public UserResponse upgradeToSeller(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng"));
+
+        // Check if already SELLER or higher
+        String currentRole = user.getRole().getRoleName();
+        if (!"BIDDER".equalsIgnoreCase(currentRole)) {
+            throw new BusinessException("Chỉ BIDDER mới có thể nâng cấp lên SELLER. Role hiện tại: " + currentRole);
+        }
+
+        // Find SELLER role
+        Role sellerRole = roleRepository.findByRoleNameIgnoreCaseAndIsDeletedFalse("SELLER")
+                .orElseThrow(() -> new BusinessException("Không tìm thấy role SELLER"));
+
+        user.setRole(sellerRole);
+        userRepository.save(user);
+
+        return userMapper.toResponse(user);
+    }
 
 }

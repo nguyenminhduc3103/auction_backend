@@ -20,6 +20,6 @@ public class UserResponse {
     private String avatarUrl;
     private Long roleId;
     private String roleName;
-    private String reason;           // lý do ban
+    private String reason;           // ban reason
     private LocalDateTime bannedUntil;
 }

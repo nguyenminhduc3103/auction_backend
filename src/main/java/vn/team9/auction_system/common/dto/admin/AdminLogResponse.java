@@ -5,13 +5,13 @@ import java.time.LocalDateTime;
 
 @Data
 public class AdminLogResponse {
-    private Long id;               // ID log
-    private Long adminId;          // ID của admin thực hiện hành động
+    private Long id;               // Log ID
+    private Long adminId;          // ID of admin performing the action
     private String action;         // e.g. APPROVE_PRODUCT, BAN_USER, REFUND
-    private String target;         // Đối tượng bị tác động (product, user, feedback...)
-    private String description;    // Mô tả chi tiết hành động
-    private String ipAddress;      // IP của admin khi thực hiện
-    private LocalDateTime createdAt; // Thời gian tạo log
-    private LocalDateTime updatedAt; // 🆕 Thời gian cập nhật log (cho CRUD)
-    private String status;           // 🆕 Trạng thái log, ví dụ: ACTIVE, DELETED
+    private String target;         // Target object affected (product, user, feedback...)
+    private String description;    // Detailed description of the action
+    private String ipAddress;      // Admin's IP address when performing action
+    private LocalDateTime createdAt; // Log creation time
+    private LocalDateTime updatedAt; // Log update time (for CRUD)
+    private String status;         // Log status, e.g. ACTIVE, DELETED
 }

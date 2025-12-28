@@ -32,6 +32,7 @@ public class SecurityConfig {
                         // ===== PUBLIC =====
                         .requestMatchers(PublicEndpoints.PUBLIC_API).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
 
                         // ===== AUCTIONS =====
                         .requestMatchers(HttpMethod.GET, "/api/auctions/**").permitAll()

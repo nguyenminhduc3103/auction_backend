@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.*;
 import vn.team9.auction_system.common.dto.admin.UserWarningLogRequest;
 import vn.team9.auction_system.common.dto.admin.UserWarningLogResponse;
 import vn.team9.auction_system.common.service.IUserWarningService;
-import vn.team9.auction_system.feedback.service.UserWarningLogImpl;
 
 import java.util.List;
 
@@ -44,10 +43,7 @@ public class UserWarningLogController {
     @PostMapping("/auto-warn")
     @PreAuthorize("hasAuthority('POST:/api/warnings/auto-warn')")
     public String autoWarnPendingTransactions() {
-        if (warningService instanceof UserWarningLogImpl impl) {
-            impl.warnPendingTransactionsOver36h();
-            return "Auto warnings created successfully";
-        }
-        return "Service implementation not found";
+        warningService.processOverdueTransactions();
+        return "Auto warnings created successfully";
     }
 }

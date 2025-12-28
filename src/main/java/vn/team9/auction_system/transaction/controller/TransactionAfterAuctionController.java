@@ -5,12 +5,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.team9.auction_system.common.dto.product.WonProductResponse;
-import vn.team9.auction_system.common.dto.transaction.TransactionAfterAuctionRequest;
 import vn.team9.auction_system.common.dto.transaction.TransactionAfterAuctionResponse;
 import vn.team9.auction_system.common.service.ITransactionAfterAuctionService;
 import vn.team9.auction_system.transaction.service.TransactionAfterAuctionServiceImpl;
 
-import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -19,11 +17,10 @@ import java.util.List;
 public class TransactionAfterAuctionController {
 
     private final ITransactionAfterAuctionService transactionService;
-    private final TransactionAfterAuctionServiceImpl transactionAfterAuctionService; // để dùng thêm hàm
-                                                                                     // payTransaction()
+    private final TransactionAfterAuctionServiceImpl transactionAfterAuctionService; // for additional payTransaction() method
 
     // ------------------------------------
-    // Buyer thanh toán giao dịch
+    // Buyer pays for transaction
     // ------------------------------------
     @PostMapping("/{txnId}/pay")
     @PreAuthorize("hasAuthority('POST:/api/transactions/after-auction/{txnId}/pay')")
@@ -34,7 +31,7 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
-    // Cập nhật trạng thái giao dịch (ví dụ: SHIPPED, DONE)
+    // Update transaction status (e.g. SHIPPED, DONE)
     // ------------------------------------
     @PutMapping("/{txnId}/status")
     @PreAuthorize("hasAuthority('PUT:/api/transactions/after-auction/{txnId}/status')")
@@ -45,7 +42,7 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
-    // Huỷ transaction (chỉ khi PENDING)
+    // Cancel transaction (only when PENDING)
     // ------------------------------------
     @PutMapping("/{txnId}/cancel")
     @PreAuthorize("hasAuthority('PUT:/api/transactions/after-auction/{txnId}/cancel')")
@@ -56,7 +53,7 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
-    // Lấy tất cả transaction của user
+    // Get all transactions of a user
     // ------------------------------------
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasAuthority('GET:/api/transactions/after-auction/user/{userId}')")
@@ -66,7 +63,7 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
-    // Lấy tất cả transaction của seller
+    // Get all transactions of a seller
     // ------------------------------------
     @GetMapping("/seller/{sellerId}")
     public ResponseEntity<List<TransactionAfterAuctionResponse>> getTransactionsBySeller(
@@ -75,7 +72,7 @@ public class TransactionAfterAuctionController {
     }
 
     // ------------------------------------
-    // Lấy transaction theo auction
+    // Get transaction by auction
     // ------------------------------------
     @GetMapping("/auction/{auctionId}")
     @PreAuthorize("hasAuthority('GET:/api/transactions/after-auction/auction/{auctionId}')")
@@ -84,10 +81,9 @@ public class TransactionAfterAuctionController {
         return ResponseEntity.ok(transactionService.getTransactionByAuction(auctionId));
     }
 
-
-    //------------------------------------------
-    // Lấy ra thông tin các sản phẩm đã thắng
-    //------------------------------------------
+    // ------------------------------------
+    // Get information of won products
+    // ------------------------------------
     @GetMapping("/{userId}/won-products")
     public ResponseEntity<List<WonProductResponse>> getWonProducts(
             @PathVariable Long userId,

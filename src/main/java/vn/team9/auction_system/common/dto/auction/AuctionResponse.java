@@ -5,7 +5,6 @@ import lombok.EqualsAndHashCode;
 import vn.team9.auction_system.common.base.BaseResponse;
 
 import java.math.BigDecimal;
-import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,5 +33,7 @@ public class AuctionResponse extends BaseResponse {
     private Long sellerId;
     private String sellerName;
 
-    private Long totalBidders;
+    // Bid counts
+    private Long totalBidders; // Số người bid khác nhau
+    private Long totalBids; // Tổng số lượt bid
 }
