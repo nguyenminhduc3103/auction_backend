@@ -9,4 +9,6 @@ import vn.team9.auction_system.common.base.BaseRequest;
 public class UserReportRequest extends BaseRequest {
     private Long userId;
     private String content;
+    private Long auctionId; // optional
+    private Long sellerId;  // optional
 }

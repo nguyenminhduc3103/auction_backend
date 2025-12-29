@@ -28,9 +28,10 @@ public class AuctionSpecification {
             if (category == null || category.isBlank())
                 return cb.conjunction();
 
-            return cb.like(
-                    cb.lower(cb.trim(root.join("product").get("category"))),
-                    "%" + category.toLowerCase().trim() + "%");
+            // Exact match (case-insensitive) instead of wildcard
+            return cb.equal(
+                    cb.lower(root.join("product").get("category")),
+                    category.toLowerCase().trim());
         };
     }
 

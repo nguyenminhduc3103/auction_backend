@@ -118,6 +118,7 @@ vn\team9\auction_system\transaction\repository\TransactionAfterAuctionRepository
 vn\team9\auction_system\common\dto\feedback\FeedbackResponse.class
 vn\team9\auction_system\common\dto\auth\AuthResponse.class
 vn\team9\auction_system\auction\service\AuctionScheduler.class
+vn\team9\auction_system\feedback\controller\UserWarningLogController.class
 vn\team9\auction_system\product\repository\ProductRepository.class
 vn\team9\auction_system\auction\controller\AuctionController.class
 vn\team9\auction_system\auction\service\AbstractBidService.class
