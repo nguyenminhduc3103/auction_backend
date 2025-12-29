@@ -58,7 +58,7 @@ public class AuctionNotificationService {
                             .type("SYSTEM")
                             .category("AUCTION_PENDING_APPROVAL")
                             .priority("HIGH")
-                            .actionUrl("/admin/products/approval")
+                            .actionUrl("/superadmin/auction/approval")
                             .actionLabel("Xem chi tiết")
                             .build();
 
@@ -116,7 +116,7 @@ public class AuctionNotificationService {
                     .type("SYSTEM")
                     .category("AUCTION_APPROVED")
                     .priority("HIGH")
-                    .actionUrl("auctions/" + auction.getAuctionId())
+                    .actionUrl("/auctions/" + auction.getAuctionId())
                     .actionLabel("Xem chi tiết")
                     .build();
 
@@ -175,7 +175,7 @@ public class AuctionNotificationService {
                     .type("SYSTEM")
                     .category("AUCTION_REJECTED")
                     .priority("HIGH")
-                    .actionUrl("/seller/auctions/" + auction.getAuctionId())
+                    .actionUrl("/auctions/" + auction.getAuctionId())
                     .actionLabel("Xem chi tiết")
                     .build();
 
@@ -209,7 +209,7 @@ public class AuctionNotificationService {
                     .type("BID")
                     .category("AUCTION_STARTED")
                     .priority("MEDIUM")
-                    .actionUrl("/seller/auctions/" + auction.getAuctionId())
+                    .actionUrl("/auctions/" + auction.getAuctionId())
                     .actionLabel("Xem phiên đấu giá")
                     .build();
 
@@ -239,7 +239,7 @@ public class AuctionNotificationService {
                     .type("BID")
                     .category("BID_PLACED")
                     .priority("MEDIUM")
-                    .actionUrl("/auction/" + auction.getAuctionId())
+                    .actionUrl("/auctions/" + auction.getAuctionId())
                     .actionLabel("Xem phiên đấu giá")
                     .build();
 
@@ -269,7 +269,7 @@ public class AuctionNotificationService {
                     .type("BID")
                     .category("LEADING_BID")
                     .priority("MEDIUM")
-                    .actionUrl("/auction/" + auction.getAuctionId())
+                    .actionUrl("/auctions/" + auction.getAuctionId())
                     .actionLabel("Xem chi tiết")
                     .build();
 
@@ -299,7 +299,7 @@ public class AuctionNotificationService {
                     .type("BID")
                     .category("OUTBID")
                     .priority("HIGH")
-                    .actionUrl("/auction/" + auction.getAuctionId())
+                    .actionUrl("/auctions/" + auction.getAuctionId())
                     .actionLabel("Đặt giá cao hơn")
                     .build();
 
@@ -383,7 +383,7 @@ public class AuctionNotificationService {
                     .type("BID")
                     .category("AUCTION_ENDED")
                     .priority("HIGH")
-                    .actionUrl("/seller/auctions/" + auction.getAuctionId())
+                    .actionUrl("/auctions/" + auction.getAuctionId())
                     .actionLabel("Xem kết quả")
                     .build();
 
@@ -435,7 +435,7 @@ public class AuctionNotificationService {
                     .type("BID")
                     .category("AUCTION_WON")
                     .priority("HIGH")
-                    .actionUrl("/auction/" + auction.getAuctionId())
+                    .actionUrl("/auctions/" + auction.getAuctionId())
                     .actionLabel("Thanh toán ngay")
                     .build();
 
@@ -464,7 +464,7 @@ public class AuctionNotificationService {
                     .type("BID")
                     .category("AUCTION_LOST")
                     .priority("LOW")
-                    .actionUrl("/auction/" + auction.getAuctionId())
+                    .actionUrl("/auctions/" + auction.getAuctionId())
                     .actionLabel("Xem chi tiết")
                     .build();
 

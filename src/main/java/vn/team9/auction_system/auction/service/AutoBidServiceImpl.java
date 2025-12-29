@@ -38,11 +38,11 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
     private static final int MAX_AUTO_BID_ITERATIONS = 10;
 
     public AutoBidServiceImpl(AuctionRepository auctionRepository,
-                              BidRepository bidRepository,
-                              UserRepository userRepository,
-                              AuctionEventPublisher eventPublisher,
-                              NotificationEventPublisher notificationPublisher,
-                              AccountTransactionServiceImpl transactionService) {
+            BidRepository bidRepository,
+            UserRepository userRepository,
+            AuctionEventPublisher eventPublisher,
+            NotificationEventPublisher notificationPublisher,
+            AccountTransactionServiceImpl transactionService) {
         super(auctionRepository, bidRepository, userRepository);
         this.eventPublisher = eventPublisher;
         this.notificationPublisher = notificationPublisher;
@@ -122,8 +122,7 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
                 log.warn("Max auto-bid must be greater than current highest");
                 return BidResponse.error(
                         String.format("Max auto-bid amount (%s) must be greater than current highest bid (%s)",
-                                maxAmount, currentHighest)
-                );
+                                maxAmount, currentHighest));
             }
 
             log.warn("Auto-bid parameters valid: Max={}, Step={}", maxAmount, stepAmount);
@@ -159,6 +158,21 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
             log.warn("STEP 9: Creating auto-bid configuration...");
             Bid autoBidConfig = createAutoBidConfig(auction, bidder, currentHighest, maxAmount, stepAmount);
             log.warn("Auto-bid config created: id={}", autoBidConfig.getBidId());
+
+            // STEP 9.5: Send notification to bidder
+            log.warn("STEP 9.5: Sending auto-bid enabled notification...");
+            try {
+                String auctionTitle = auction.getProduct().getName();
+                notificationPublisher.publishAutoBidEnabledNotification(
+                        bidder.getUserId(),
+                        auctionTitle,
+                        maxAmount.doubleValue(),
+                        auction.getAuctionId());
+                log.warn("Auto-bid enabled notification sent to user: {}", bidder.getUserId());
+            } catch (Exception e) {
+                log.warn("Failed to send auto-bid notification (non-fatal): {}", e.getMessage());
+                // Continue anyway - notification failure should not block auto-bid
+            }
 
             // STEP 10: Trigger auto-bid competition
             log.warn("STEP 10: Triggering auto-bid competition...");
@@ -331,8 +345,7 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
                     auction,
                     challengerConfig.getBidder(),
                     proposed,
-                    challengerConfig
-            );
+                    challengerConfig);
 
             log.warn("Real bid created from auto-bid: user={}, amount={}",
                     realBid.getBidder().getUserId(), realBid.getBidAmount());
@@ -353,17 +366,20 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
                 Long bidderId = challengerConfig.getBidder().getUserId();
 
                 // 1. Notify Bidder (Auto Bid Placed)
-                notificationPublisher.publishBidPlacedNotification(bidderId, auctionTitle, bidAmountDouble, auction.getAuctionId());
+                notificationPublisher.publishBidPlacedNotification(bidderId, auctionTitle, bidAmountDouble,
+                        auction.getAuctionId());
 
                 // 2. Notify Previous Highest Bidder (Outbid)
                 if (currentHighestBid != null && !currentHighestBid.getBidder().getUserId().equals(bidderId)) {
-                     notificationPublisher.publishOutbidNotification(currentHighestBid.getBidder().getUserId(), auctionTitle, bidAmountDouble, auction.getAuctionId());
+                    notificationPublisher.publishOutbidNotification(currentHighestBid.getBidder().getUserId(),
+                            auctionTitle, bidAmountDouble, auction.getAuctionId());
                 }
 
                 // 3. Notify Seller (Highest Bid Changed)
                 Long sellerId = auction.getProduct().getSeller().getUserId();
-                 if (!sellerId.equals(bidderId)) {
-                     notificationPublisher.publishHighestBidderChangedNotification(sellerId, auctionTitle, bidAmountDouble, auction.getAuctionId());
+                if (!sellerId.equals(bidderId)) {
+                    notificationPublisher.publishHighestBidderChangedNotification(sellerId, auctionTitle,
+                            bidAmountDouble, auction.getAuctionId());
                 }
 
                 log.warn("Notifications sent for auto-bid");
@@ -380,10 +396,11 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
     }
 
     /**
-     * Create auto-bid config (only saves max, step info, does NOT create actual bid)
+     * Create auto-bid config (only saves max, step info, does NOT create actual
+     * bid)
      */
     private Bid createAutoBidConfig(Auction auction, User bidder, BigDecimal currentHighest,
-                                    BigDecimal maxAmount, BigDecimal stepAmount) {
+            BigDecimal maxAmount, BigDecimal stepAmount) {
         Bid bid = new Bid();
         bid.setAuction(auction);
         bid.setBidder(bidder);
@@ -432,8 +449,8 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
             boolean isCurrentHighestBidder = currentHighestInThisAuction.isPresent() &&
                     currentHighestInThisAuction.get().getBidder().getUserId().equals(userId);
 
-            BigDecimal currentHighestAmount = isCurrentHighestBidder ?
-                    currentHighestInThisAuction.get().getBidAmount() : BigDecimal.ZERO;
+            BigDecimal currentHighestAmount = isCurrentHighestBidder ? currentHighestInThisAuction.get().getBidAmount()
+                    : BigDecimal.ZERO;
 
             log.warn("Is highest bidder in current auction {}: {} (amount: {})",
                     currentAuctionId, isCurrentHighestBidder, currentHighestAmount);
@@ -460,17 +477,17 @@ public class AutoBidServiceImpl extends AbstractBidService implements IAutoBidSe
 
                 if (isCurrentHighestBidder) {
                     return String.format("""
-                    Insufficient credit for auto-bid.
-                    • Withdrawable balance: %s VND
-                    • Amount locked in this auction: %s VND
-                    • Total available: %s VND
-                    • Required: %s VND""",
+                            Insufficient credit for auto-bid.
+                            • Withdrawable balance: %s VND
+                            • Amount locked in this auction: %s VND
+                            • Total available: %s VND
+                            • Required: %s VND""",
                             withdrawable, currentHighestAmount, availableForNewBid, bidAmount);
                 } else {
                     return String.format("""
-                    Not enough credit for auto-bid.
-                    • Available: %s VND
-                    • Require: %s VND""",
+                            Not enough credit for auto-bid.
+                            • Available: %s VND
+                            • Require: %s VND""",
                             availableForNewBid, bidAmount);
                 }
             }
