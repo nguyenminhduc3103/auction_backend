@@ -304,7 +304,6 @@ public class AuctionServiceImpl implements IAuctionService {
 
         Specification<Auction> spec = Specification.where(
                 AuctionSpecification.hasStatus(status))
-                .and(AuctionSpecification.excludeStatus("CLOSED"))
                 .and(AuctionSpecification.hasCategory(category))
                 .and(AuctionSpecification.hasKeyword(keyword))
                 .and(AuctionSpecification.hasPriceRange(minPrice, maxPrice));
