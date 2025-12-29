@@ -19,6 +19,10 @@ public class UserReport {
 
     private String content; // nội dung report
 
+    private Long auctionId; // nullable - chỉ có khi report từ auction detail page
+
+    private Long sellerId; // nullable - chỉ có khi report từ order/seller
+
     private LocalDateTime createdAt;
 
     public UserReport() {

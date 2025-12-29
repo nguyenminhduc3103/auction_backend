@@ -34,6 +34,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
 
+                        // Static assets (avatars, static resources)
+                        .requestMatchers("/avatars/**", "/static/**", "/assets/**").permitAll()
+
                         // ===== AUCTIONS =====
                         .requestMatchers(HttpMethod.GET, "/api/auctions/**").permitAll()
 

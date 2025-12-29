@@ -8,7 +8,9 @@ import vn.team9.auction_system.common.dto.auth.AuthResponse;
 import vn.team9.auction_system.common.dto.auth.LoginRequest;
 import vn.team9.auction_system.common.dto.auth.RegisterRequest;
 import vn.team9.auction_system.user.model.User;
+import vn.team9.auction_system.user.model.Role;
 import vn.team9.auction_system.user.repository.UserRepository;
+import vn.team9.auction_system.auth.repository.RoleRepository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class UserAuthService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmailService emailService;
@@ -72,6 +75,11 @@ public class UserAuthService {
         user.setCreatedAt(LocalDateTime.now());
         user.setVerificationToken(UUID.randomUUID().toString());
         user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(15));
+
+        // Assign default role (USER = id 1)
+        Role userRole = roleRepository.findByRoleIdAndIsDeletedFalse(1L)
+                .orElseThrow(() -> new RuntimeException("Role USER không tồn tại"));
+        user.setRole(userRole);
 
         userRepository.save(user);
 

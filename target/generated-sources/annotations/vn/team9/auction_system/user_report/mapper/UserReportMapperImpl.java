@@ -7,7 +7,7 @@ import vn.team9.auction_system.user_report.model.UserReport;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-29T13:19:25+0700",
+    date = "2025-12-29T13:26:41+0700",
     comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 public class UserReportMapperImpl implements UserReportMapper {
@@ -20,7 +20,9 @@ public class UserReportMapperImpl implements UserReportMapper {
 
         UserReport userReport = new UserReport();
 
+        userReport.setAuctionId( request.getAuctionId() );
         userReport.setContent( request.getContent() );
+        userReport.setSellerId( request.getSellerId() );
         userReport.setUserId( request.getUserId() );
 
         return userReport;
@@ -34,9 +36,11 @@ public class UserReportMapperImpl implements UserReportMapper {
 
         UserReportResponse userReportResponse = new UserReportResponse();
 
+        userReportResponse.setAuctionId( entity.getAuctionId() );
         userReportResponse.setContent( entity.getContent() );
         userReportResponse.setCreatedAt( entity.getCreatedAt() );
         userReportResponse.setId( entity.getId() );
+        userReportResponse.setSellerId( entity.getSellerId() );
         userReportResponse.setUserId( entity.getUserId() );
 
         return userReportResponse;

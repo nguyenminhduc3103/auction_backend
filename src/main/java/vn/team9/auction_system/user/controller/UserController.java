@@ -8,6 +8,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import vn.team9.auction_system.auction.service.AuctionServiceImpl;
 import vn.team9.auction_system.common.dto.user.ChangePasswordRequest;
 import vn.team9.auction_system.common.dto.user.UserResponse;
@@ -27,6 +30,11 @@ public class UserController {
 
     private final UserService userService;
     private final AuctionServiceImpl auctionService;
+
+    @Value("${avatar.upload-dir:uploads/avatars/}")
+    private String avatarBaseDir;
+
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     @GetMapping("/me")
     @PreAuthorize("hasAuthority('GET:/api/users/me')")
@@ -72,24 +80,28 @@ public class UserController {
 
             String filename = "ID_" + currentUser.getUserId() + "_" + currentUser.getUsername() + ".png";
 
-            // Create directory if not exists
-            Path uploadDir = Paths.get("src/main/resources/static/avatars/users/");
+            // Create directory if not exists (use external uploads folder)
+            Path uploadDir = Paths.get(avatarBaseDir, "users").toAbsolutePath().normalize();
+            log.info("[Avatar] Upload base dir: {}", uploadDir);
             if (!Files.exists(uploadDir)) {
                 Files.createDirectories(uploadDir);
+                log.info("[Avatar] Created directory: {}", uploadDir);
             }
 
             // Write file (overwrite if exists)
             Path filePath = uploadDir.resolve(filename);
+            log.info("[Avatar] Writing file: {} (size={} bytes)", filePath, file.getSize());
             Files.write(filePath, file.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
-            // Update avatar_url in DB
+            // Update avatar_url in DB (relative path served by resource handler)
             String relativeUrl = "/avatars/users/" + filename;
             userService.updateAvatarUrl(currentUser.getUserId(), relativeUrl);
+            log.info("[Avatar] DB updated for userId={} url={}", currentUser.getUserId(), relativeUrl);
 
             return ResponseEntity.ok(Map.of("avatarUrl", relativeUrl));
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("[Avatar] Failed to update avatar: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Unable to update avatar"));
         }

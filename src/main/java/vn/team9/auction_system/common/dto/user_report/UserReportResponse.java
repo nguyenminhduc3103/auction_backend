@@ -11,5 +11,7 @@ public class UserReportResponse extends BaseResponse {
     private Long id;
     private Long userId;
     private String content;
+    private Long auctionId;
+    private Long sellerId;
     private LocalDateTime createdAt;
 }

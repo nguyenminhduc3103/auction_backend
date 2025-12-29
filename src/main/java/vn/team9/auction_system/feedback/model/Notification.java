@@ -43,7 +43,7 @@ public class Notification {
     @Column(nullable = false)
     private NotificationType type;
 
-    @Column(length = 50, nullable = false)
+    @Column(length = 250, nullable = true)
     private String category;
 
     @Enumerated(EnumType.STRING)
