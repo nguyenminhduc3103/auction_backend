@@ -12,8 +12,8 @@ import vn.team9.auction_system.user.model.User;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-29T18:07:05+0700",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-29T20:07:30+0700",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 22.0.2 (Oracle Corporation)"
 )
 @Component
 public class TransactionMapperImpl implements TransactionMapper {
@@ -73,8 +73,8 @@ public class TransactionMapperImpl implements TransactionMapper {
         accountTransactionResponse.setUserId( entityUserUserId( entity ) );
         accountTransactionResponse.setCreatedAt( entity.getCreatedAt() );
         accountTransactionResponse.setAmount( entity.getAmount() );
-        accountTransactionResponse.setStatus( entity.getStatus() );
         accountTransactionResponse.setType( entity.getType() );
+        accountTransactionResponse.setStatus( entity.getStatus() );
 
         return accountTransactionResponse;
     }
