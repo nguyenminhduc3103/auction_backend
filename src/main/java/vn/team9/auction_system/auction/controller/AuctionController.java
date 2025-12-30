@@ -11,7 +11,6 @@ import vn.team9.auction_system.common.dto.auction.AuctionResponse;
 import java.math.BigDecimal;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/auctions")
 @RequiredArgsConstructor
 public class AuctionController {

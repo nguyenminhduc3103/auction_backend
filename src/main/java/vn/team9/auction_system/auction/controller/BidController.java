@@ -13,7 +13,6 @@ import vn.team9.auction_system.common.dto.auction.BidResponse;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/bids")
 @RequiredArgsConstructor
 @Slf4j

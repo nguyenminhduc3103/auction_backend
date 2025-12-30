@@ -12,7 +12,7 @@ import vn.team9.auction_system.user.model.User;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-30T20:24:57+0700",
+    date = "2025-12-30T23:18:08+0700",
     comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -54,12 +54,12 @@ public class TransactionMapperImpl implements TransactionMapper {
             return null;
         }
 
-        AccountTransaction accountTransaction = new AccountTransaction();
+        AccountTransaction.AccountTransactionBuilder accountTransaction = AccountTransaction.builder();
 
-        accountTransaction.setAmount( request.getAmount() );
-        accountTransaction.setType( request.getType() );
+        accountTransaction.amount( request.getAmount() );
+        accountTransaction.type( request.getType() );
 
-        return accountTransaction;
+        return accountTransaction.build();
     }
 
     @Override
@@ -73,8 +73,8 @@ public class TransactionMapperImpl implements TransactionMapper {
         accountTransactionResponse.setUserId( entityUserUserId( entity ) );
         accountTransactionResponse.setCreatedAt( entity.getCreatedAt() );
         accountTransactionResponse.setAmount( entity.getAmount() );
-        accountTransactionResponse.setType( entity.getType() );
         accountTransactionResponse.setStatus( entity.getStatus() );
+        accountTransactionResponse.setType( entity.getType() );
 
         return accountTransactionResponse;
     }
