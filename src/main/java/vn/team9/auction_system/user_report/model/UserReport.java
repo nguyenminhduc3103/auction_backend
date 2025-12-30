@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Setter
 @Getter
 @Entity
-@Table(name = "user_reports")
+@Table(name = "UserReports")
 public class UserReport {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

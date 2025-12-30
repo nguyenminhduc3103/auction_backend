@@ -14,7 +14,7 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(
-        name = "permission",
+        name = "Permission",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_permission_api_method", columnNames = {"api_path", "method"}),
                 @UniqueConstraint(name = "uk_permission_name", columnNames = {"permission_name"})

@@ -13,8 +13,8 @@ import vn.team9.auction_system.user.model.User;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-29T20:07:30+0700",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 22.0.2 (Oracle Corporation)"
+    date = "2025-12-30T20:24:28+0700",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
 public class AuctionMapperImpl implements AuctionMapper {
@@ -27,8 +27,8 @@ public class AuctionMapperImpl implements AuctionMapper {
 
         Auction auction = new Auction();
 
-        auction.setStartTime( request.getStartTime() );
         auction.setEndTime( request.getEndTime() );
+        auction.setStartTime( request.getStartTime() );
 
         return auction;
     }
@@ -43,10 +43,10 @@ public class AuctionMapperImpl implements AuctionMapper {
 
         auctionResponse.setProductId( auctionProductProductId( auction ) );
         auctionResponse.setAuctionId( auction.getAuctionId() );
-        auctionResponse.setStartTime( auction.getStartTime() );
-        auctionResponse.setEndTime( auction.getEndTime() );
-        auctionResponse.setStatus( auction.getStatus() );
         auctionResponse.setBidStepAmount( auction.getBidStepAmount() );
+        auctionResponse.setEndTime( auction.getEndTime() );
+        auctionResponse.setStartTime( auction.getStartTime() );
+        auctionResponse.setStatus( auction.getStatus() );
 
         return auctionResponse;
     }
@@ -76,8 +76,8 @@ public class AuctionMapperImpl implements AuctionMapper {
         bidResponse.auctionId( bidAuctionAuctionId( bid ) );
         bidResponse.bidderId( bidBidderUserId( bid ) );
         bidResponse.bidAmount( bid.getBidAmount() );
-        bidResponse.stepAutoBidAmount( bid.getStepAutoBidAmount() );
         bidResponse.createdAt( bid.getCreatedAt() );
+        bidResponse.stepAutoBidAmount( bid.getStepAutoBidAmount() );
 
         return bidResponse.build();
     }

@@ -8,8 +8,8 @@ import vn.team9.auction_system.user.model.User;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-29T20:07:28+0700",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 22.0.2 (Oracle Corporation)"
+    date = "2025-12-30T20:24:28+0700",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
 public class UserMapperImpl implements UserMapper {
@@ -24,18 +24,18 @@ public class UserMapperImpl implements UserMapper {
 
         userResponse.setRoleId( userRoleRoleId( user ) );
         userResponse.setRoleName( userRoleRoleName( user ) );
-        userResponse.setUserId( user.getUserId() );
-        userResponse.setFullName( user.getFullName() );
-        userResponse.setUsername( user.getUsername() );
-        userResponse.setEmail( user.getEmail() );
-        userResponse.setPhone( user.getPhone() );
-        userResponse.setGender( user.getGender() );
-        userResponse.setBalance( user.getBalance() );
-        userResponse.setStatus( user.getStatus() );
-        userResponse.setCreatedAt( user.getCreatedAt() );
-        userResponse.setVerifiedAt( user.getVerifiedAt() );
         userResponse.setAvatarUrl( user.getAvatarUrl() );
+        userResponse.setBalance( user.getBalance() );
         userResponse.setBannedUntil( user.getBannedUntil() );
+        userResponse.setCreatedAt( user.getCreatedAt() );
+        userResponse.setEmail( user.getEmail() );
+        userResponse.setFullName( user.getFullName() );
+        userResponse.setGender( user.getGender() );
+        userResponse.setPhone( user.getPhone() );
+        userResponse.setStatus( user.getStatus() );
+        userResponse.setUserId( user.getUserId() );
+        userResponse.setUsername( user.getUsername() );
+        userResponse.setVerifiedAt( user.getVerifiedAt() );
 
         return userResponse;
     }

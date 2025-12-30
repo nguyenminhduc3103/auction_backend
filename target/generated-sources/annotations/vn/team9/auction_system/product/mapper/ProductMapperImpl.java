@@ -15,8 +15,8 @@ import vn.team9.auction_system.user.model.User;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-29T20:07:31+0700",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 22.0.2 (Oracle Corporation)"
+    date = "2025-12-30T20:24:28+0700",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
 public class ProductMapperImpl implements ProductMapper {
@@ -29,11 +29,11 @@ public class ProductMapperImpl implements ProductMapper {
 
         Product product = new Product();
 
-        product.setName( request.getName() );
-        product.setDescription( request.getDescription() );
-        product.setStartPrice( request.getStartPrice() );
         product.setCategory( request.getCategory() );
+        product.setDescription( request.getDescription() );
         product.setImageUrl( request.getImageUrl() );
+        product.setName( request.getName() );
+        product.setStartPrice( request.getStartPrice() );
 
         return product;
     }
@@ -44,20 +44,20 @@ public class ProductMapperImpl implements ProductMapper {
             return;
         }
 
-        if ( request.getName() != null ) {
-            product.setName( request.getName() );
+        if ( request.getCategory() != null ) {
+            product.setCategory( request.getCategory() );
         }
         if ( request.getDescription() != null ) {
             product.setDescription( request.getDescription() );
         }
-        if ( request.getStartPrice() != null ) {
-            product.setStartPrice( request.getStartPrice() );
-        }
-        if ( request.getCategory() != null ) {
-            product.setCategory( request.getCategory() );
-        }
         if ( request.getImageUrl() != null ) {
             product.setImageUrl( request.getImageUrl() );
+        }
+        if ( request.getName() != null ) {
+            product.setName( request.getName() );
+        }
+        if ( request.getStartPrice() != null ) {
+            product.setStartPrice( request.getStartPrice() );
         }
     }
 
@@ -71,18 +71,18 @@ public class ProductMapperImpl implements ProductMapper {
 
         productResponse.setSellerId( entitySellerUserId( entity ) );
         productResponse.setImages( toImageResponses( entity.getImages() ) );
-        productResponse.setProductId( entity.getProductId() );
-        productResponse.setName( entity.getName() );
         productResponse.setCategory( entity.getCategory() );
-        productResponse.setDescription( entity.getDescription() );
-        productResponse.setStartPrice( entity.getStartPrice() );
-        productResponse.setEstimatePrice( entity.getEstimatePrice() );
-        productResponse.setDeposit( entity.getDeposit() );
-        productResponse.setImageUrl( entity.getImageUrl() );
-        productResponse.setStatus( entity.getStatus() );
         productResponse.setCreatedAt( entity.getCreatedAt() );
-        productResponse.setIsDeleted( entity.getIsDeleted() );
         productResponse.setDeletedAt( entity.getDeletedAt() );
+        productResponse.setDeposit( entity.getDeposit() );
+        productResponse.setDescription( entity.getDescription() );
+        productResponse.setEstimatePrice( entity.getEstimatePrice() );
+        productResponse.setImageUrl( entity.getImageUrl() );
+        productResponse.setIsDeleted( entity.getIsDeleted() );
+        productResponse.setName( entity.getName() );
+        productResponse.setProductId( entity.getProductId() );
+        productResponse.setStartPrice( entity.getStartPrice() );
+        productResponse.setStatus( entity.getStatus() );
 
         return productResponse;
     }
